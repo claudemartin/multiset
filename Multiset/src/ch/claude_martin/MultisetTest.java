@@ -449,6 +449,49 @@ public class MultisetTest {
       wrap.add(Foo.BLUBB);
       assertEquals(Multiset.of(Foo.BLA, Foo.BLUBB), wrap);
     }
+
+    {
+      final Collection<Integer> coll = new LinkedList<>(this.numbers);
+      final Multiset<Integer> multiset = Multiset.wrap(coll);
+      assertEquals(new Multiset<>(coll), multiset);
+      for (int i = -3; i < 5; i++)
+        multiset.insert(i);
+      assertEquals(new Multiset<>(coll), multiset);
+      for (int i = 1; i < 7; i++)
+        multiset.remove(i);
+      assertEquals(new Multiset<>(coll), multiset);
+      multiset.setMultiplicity(8, 0);
+      assertEquals(new Multiset<>(coll), multiset);
+      multiset.setMultiplicities((i, m) -> Math.abs(i + m));
+      assertEquals(new Multiset<>(coll), multiset);
+      multiset.asMap().merge(8, 2, Integer::sum);
+      assertEquals(new Multiset<>(coll), multiset);
+      multiset.asSet().remove(9);
+      assertEquals(new Multiset<>(coll), multiset);
+    }
+
+    final Map<String, Integer> map = new HashMap<>();
+    try {
+      map.clear();
+      map.put("foo", 0);
+      Multiset.wrap(map);
+    } catch (final IllegalArgumentException e) {
+      // expected
+    }
+    try {
+      map.clear();
+      map.put("foo", -3);
+      Multiset.wrap(map);
+    } catch (final IllegalArgumentException e) {
+      // expected
+    }
+    try {
+      map.clear();
+      map.put("foo", null);
+      Multiset.wrap(map);
+    } catch (final NullPointerException e) {
+      // expected
+    }
   }
 
   enum Foo {
@@ -499,5 +542,73 @@ public class MultisetTest {
 
     map.get().put(42, 123);
     assertEquals(123, coll.get().stream().filter(i -> i == 42).count());
+  }
+
+  @Test
+  public void testCheckedMultiset() throws Exception {
+    {
+      final Multiset<Character> checked = Multiset.checkedMultiset(this.abc, Character.class);
+      assertTrue(checked.add('ö'));
+      assertTrue(this.abc.contains('ö'));
+
+      final Object o = "Not A Character";
+      try {
+        checked.add((Character) o);
+      } catch (final ClassCastException e) {
+        // expected
+      }
+    }
+    {
+      final Map<String, Integer> map = new HashMap<>();
+      try {
+        Multiset.checkedMultiset(map, String.class).insert((String) (Object) 42);
+      } catch (final ClassCastException e) {
+        // expected
+      }
+      assertTrue(map.isEmpty());
+      try {
+        map.put((String) (Object) 42, 123);
+        Multiset.checkedMultiset(map, String.class);
+      } catch (final ClassCastException e) {
+        // expected
+      }
+      map.clear();
+      map.put("foo", 5);
+      map.put(null, 5);
+      Multiset.checkedMultiset(map, String.class).insert("bla");
+      assertEquals(3, map.size());
+      assertEquals(5 + 5 + 1, Multiset.wrap(map).size());
+    }
+  }
+
+  private Map<Character, Integer> syncMap;
+
+  @Test
+  public void testAllWrappers() throws Exception {
+    {
+      final Multiset<Character> wrap = Multiset.wrap(Multiset.checkedMultiset(
+          Multiset.unmodifiableMultiset(this.abc), Character.class).asMap());
+      try {
+        wrap.add((Character) (Object) "FOO");
+      } catch (final ClassCastException e) {
+        // expected
+      }
+      try {
+        wrap.add('ö');
+      } catch (final UnsupportedOperationException e) {
+        // expected
+      }
+    }
+    {
+      Multiset.synchronizedMultiset(this.abc, (c, m) -> this.syncMap = m);
+      final Multiset<Character> wrap = Multiset.checkedMultiset(this.syncMap, Character.class);
+      try {
+        wrap.add((Character) (Object) "FOO");
+      } catch (final ClassCastException e) {
+        // expected
+      }
+      wrap.add('ö');
+      assertTrue(Multiset.unmodifiableMultiset(this.abc).contains('ö'));
+    }
   }
 }
