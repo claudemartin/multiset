@@ -655,7 +655,7 @@ public final class Multiset<T> extends AbstractCollection<T> implements Serializ
    * Process each element only once, with the multiplicity given as a second parameter. The element
    * can be <code>null</code>, while the multiplicity is always greater than 0.
    */
-  public void forEach(final ObjIntConsumer<T> action) {
+  public void forEach(final ObjIntConsumer<? super T> action) {
     this.map.forEach(action::accept);
   }
 
@@ -997,7 +997,7 @@ public final class Multiset<T> extends AbstractCollection<T> implements Serializ
       final Class<? extends Map<T, Integer>> cls = (Class<? extends Map<T, Integer>>) Class
           .forName("java.util.Collections$SynchronizedMap");
       final Constructor<? extends Map<T, Integer>> ctor = //
-      cls.getDeclaredConstructor(Map.class, Object.class);
+          cls.getDeclaredConstructor(Map.class, Object.class);
       ctor.setAccessible(true);
       final Map<T, Integer> map = ctor.newInstance(set.asMap(), collection);
       consumer.accept(collection, map);
