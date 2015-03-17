@@ -100,7 +100,10 @@ public final class Multiset<T> extends AbstractCollection<T> implements Serializ
     this.checkSize();
   }
 
-  /** Creates a new Multiset and adds all elements from the given Multiset. */
+  /**
+   * Creates a new multiset and adds all elements from the given multiset. The returned multiset is
+   * modifiable and not synchronized.
+   */
   public Multiset(final Multiset<? extends T> multiset) {
     requireNonNull(multiset, "multiset");
     multiset.checkSize();
@@ -187,11 +190,12 @@ public final class Multiset<T> extends AbstractCollection<T> implements Serializ
 
   /**
    * This will use a given collection and will apply all operations on the created multiset to the
-   * collection. The collection should behave like a multiset, but any implementation can be used.
-   * Any modification of the collection will invalidate the multiset.
+   * collection. The collection should behave like a multiset, but any {@link List}-like
+   * implementation can be used. Any direct modification of the collection will invalidate the
+   * multiset.
    * 
    * @param coll
-   *          A collection of elements. This must not be a {@link Set}.
+   *          A collection of elements. This must not be a {@link Set} nor a {@link Multiset}.
    * @return New Multiset that will apply all changes to the given collection.
    * 
    * @throws IllegalArgumentException
@@ -208,8 +212,10 @@ public final class Multiset<T> extends AbstractCollection<T> implements Serializ
     if (coll instanceof Multiset)
       throw new IllegalArgumentException("Multiset can not be wrapped.");
 
-    final Multiset<T> multiset = new Multiset<>(coll);
-    final ObservableMap<T, Integer> obs = FXCollections.observableMap(multiset.map);
+    final Map<T, Integer> map = new HashMap<>();
+    for (final T t : coll)
+      map.merge(t, 1, Integer::sum);
+    final ObservableMap<T, Integer> obs = FXCollections.observableMap(map);
     obs.addListener(new MapChangeListener<T, Integer>() {
       @Override
       public void onChanged(final Change<? extends T, ? extends Integer> change) {
@@ -230,7 +236,7 @@ public final class Multiset<T> extends AbstractCollection<T> implements Serializ
       }
     });
 
-    return new Multiset<>(obs, multiset.size);
+    return new Multiset<>(obs, coll.size());
   }
 
   /**
@@ -600,22 +606,32 @@ public final class Multiset<T> extends AbstractCollection<T> implements Serializ
     return false;
   }
 
+  /**
+   * Returns a hash code for this Multiset. The hash code of a multiset is defined to be the sum of
+   * the hash codes of each entry and that sum XORed with the {@link #size() size}.
+   */
   @Override
   public int hashCode() {
     return this.size ^ this.map.hashCode();
   }
 
+  /**
+   * Removes all of the elements from this multiset (optional operation). The multiset will be empty
+   * after this method returns.
+   */
   @Override
   public void clear() {
     if (this.size == 0)
       return;
     this.map.clear();
     this.size = 0;
+    assert this.isEmpty() : "not empty after clear";
     this.checkSize();
   }
 
   /**
-   * Creates a clone. The cloned multiset is modifiable.
+   * Creates a clone. The cloned multiset is modifiable and not synchronized. This is equal to
+   * {@link #Multiset(Multiset)}.
    */
   @Override
   protected Object clone() {
@@ -940,8 +956,8 @@ public final class Multiset<T> extends AbstractCollection<T> implements Serializ
   /**
    * Returns a set of all elements, without multiplicity. The set is backed by the multiset, so
    * changes to the multiset are reflected in the set, and vice-versa. Removing one element from the
-   * set removes all equal elements from the multiset. It does not support the <code>add</code> or
-   * <code>addAll</code>.
+   * set removes all equal elements from the multiset. It does not support the <code>add</code> and
+   * <code>addAll</code> methods.
    * 
    * <p>
    * If using the formal definition <code>(A, m)</code> of a multiset, the returned set is
@@ -981,7 +997,7 @@ public final class Multiset<T> extends AbstractCollection<T> implements Serializ
       final Class<? extends Map<T, Integer>> cls = (Class<? extends Map<T, Integer>>) Class
           .forName("java.util.Collections$SynchronizedMap");
       final Constructor<? extends Map<T, Integer>> ctor = //
-          cls.getDeclaredConstructor(Map.class, Object.class);
+      cls.getDeclaredConstructor(Map.class, Object.class);
       ctor.setAccessible(true);
       final Map<T, Integer> map = ctor.newInstance(set.asMap(), collection);
       consumer.accept(collection, map);
