@@ -611,4 +611,31 @@ public class MultisetTest {
       assertTrue(Multiset.unmodifiableMultiset(this.abc).contains('ö'));
     }
   }
+
+  @Test
+  public void testCollector() throws Exception {
+    {
+      final Multiset<Character> collected = IntStream.rangeClosed('a', 'z').parallel()
+          .mapToObj(i -> (char) i).collect(Multiset.collector());
+      assertEquals(this.abc, collected);
+    }
+    for (final Multiset<?> ms : this.list) {
+      {
+        final Multiset<?> collected = ms.stream().collect(Multiset.collector());
+        assertEquals(ms, collected);
+      }
+      {
+        final Multiset<?> collected = ms.parallelStream().collect(
+            Multiset.collector(() -> Multiset.wrap(TreeMap::new)));
+        assertEquals(ms, collected);
+      }
+    }
+    {
+      final Set<Integer> set = IntStream.range(-1024, 1024).mapToObj(i -> i)
+          .collect(Collectors.toSet());
+      final Multiset<Integer> bag = Multiset.of(set, i -> Math.abs(i % 137));
+      final Multiset<Integer> collected = bag.parallelStream().collect(Multiset.collector());
+      assertEquals(bag, collected);
+    }
+  }
 }

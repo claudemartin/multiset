@@ -10,6 +10,7 @@ import java.util.*;
 import java.util.AbstractMap.SimpleImmutableEntry;
 import java.util.Map.Entry;
 import java.util.function.*;
+import java.util.stream.Collector;
 import java.util.stream.Collectors;
 import java.util.stream.IntStream;
 import java.util.stream.Stream;
@@ -996,8 +997,8 @@ public final class Multiset<T> extends AbstractCollection<T> implements Serializ
       final Collection<T> collection = Collections.synchronizedCollection(set);
       final Class<? extends Map<T, Integer>> cls = (Class<? extends Map<T, Integer>>) Class
           .forName("java.util.Collections$SynchronizedMap");
-      final Constructor<? extends Map<T, Integer>> ctor = //
-          cls.getDeclaredConstructor(Map.class, Object.class);
+      final Constructor<? extends Map<T, Integer>> ctor;
+      ctor = cls.getDeclaredConstructor(Map.class, Object.class);
       ctor.setAccessible(true);
       final Map<T, Integer> map = ctor.newInstance(set.asMap(), collection);
       consumer.accept(collection, map);
@@ -1041,5 +1042,70 @@ public final class Multiset<T> extends AbstractCollection<T> implements Serializ
     requireNonNull(map, "map");
     requireNonNull(type, "type");
     return Multiset.wrap(Collections.checkedMap(map, type, Integer.class));
+  }
+
+  /**
+   * Returns a {@code Collector} that accumulates the input elements into a new {@code Multiset}.
+   * 
+   * @return a {@code Collector} which collects all the input elements into a {@code Multiset}
+   */
+  public static <T> Collector<T, ?, Multiset<T>> collector() {
+    return collector(Multiset::new);
+  }
+
+  /**
+   * Returns a {@code Collector} that accumulates the input elements into a new {@code Multiset}.
+   * This cen be used to define a custom implementation of the backing {@link Map} used by the
+   * multiset (e.g. a {@link TreeMap}).
+   * 
+   * @param supplier
+   *          Used to create the multisets used for accomulation. The supplied multisets must be
+   *          empty.
+   * @return a {@code Collector} which collects all the input elements into a {@code Multiset}
+   */
+  public static <T> Collector<T, ?, Multiset<T>> collector(final Supplier<Multiset<T>> supplier) {
+    requireNonNull(supplier, "supplier");
+    return new Collector<T, Multiset<T>, Multiset<T>>() {
+
+      @Override
+      public Supplier<Multiset<T>> supplier() {
+        return supplier;
+      }
+
+      @Override
+      public BiConsumer<Multiset<T>, T> accumulator() {
+        // Equivalent to Multiset::insert, but simplified:
+        return (ms, t) -> {
+          ms.map.put(t, ms.map.getOrDefault(t, 0) + 1);
+          ms.size++;
+        };
+      }
+
+      @Override
+      public BinaryOperator<Multiset<T>> combiner() {
+        return (m1, m2) -> {
+          final Multiset<T> smaller, larger;
+          if (m1.map.entrySet().size() < m2.map.entrySet().size()) {
+            smaller = m1;
+            larger = m2;
+          } else {
+            smaller = m2;
+            larger = m1;
+          }
+          larger.addAll(smaller);
+          return larger;
+        };
+      }
+
+      @Override
+      public Function<Multiset<T>, Multiset<T>> finisher() {
+        return Function.identity();
+      }
+
+      @Override
+      public Set<java.util.stream.Collector.Characteristics> characteristics() {
+        return EnumSet.of(Characteristics.UNORDERED, Characteristics.IDENTITY_FINISH);
+      }
+    };
   }
 }
