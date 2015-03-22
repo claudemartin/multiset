@@ -305,12 +305,16 @@ public final class Multiset<T> extends AbstractCollection<T> implements Serializ
   }
 
   /**
-   * Adds the object and returns the new multiplicity.
+   * Adds the element and returns the new multiplicity.
    * 
+   * @param element
+   *          The element to be added.
    * @see #add(Object)
+   * @return the new multiplicity.
    */
-  public int insert(final T t) {
-    final Integer result = this.map.merge(t, 1, Integer::sum);
+  public int insert(final T element) {
+    final Integer result = this.map.getOrDefault(element, 0) + 1;
+    this.map.put(element, result);
     this.size++;
     this.checkSize();
     return result;
