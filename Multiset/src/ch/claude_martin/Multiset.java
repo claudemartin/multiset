@@ -332,17 +332,14 @@ public final class Multiset<T> extends AbstractCollection<T> implements Serializ
   @Override
   @SuppressWarnings("unchecked")
   public boolean remove(final Object t) {
-    final int value = this.map.getOrDefault(t, 0);
-    switch (value) {
-    case 0:
+    final Integer value = this.map.get(t);
+    if (value == null)
       return false;
-    case 1:
+    else if (value.intValue() == 1)
       this.map.remove(t);
-      break;
-    default:
+    else {
       assert value > 1 : "invalid value";
       this.map.put((T) t, value - 1);
-      break;
     }
     this.size--;
     this.checkSize();
@@ -1084,7 +1081,11 @@ public final class Multiset<T> extends AbstractCollection<T> implements Serializ
       public BiConsumer<Multiset<T>, T> accumulator() {
         // Equivalent to Multiset::insert, but simplified:
         return (ms, t) -> {
-          ms.map.put(t, ms.map.getOrDefault(t, 0) + 1);
+          final Integer m = ms.map.get(t);
+          if (m == null)
+            ms.map.put(t, 1);
+          else
+            ms.map.put(t, m + 1);
           ms.size++;
         };
       }
