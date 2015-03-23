@@ -268,7 +268,7 @@ public class MultisetTest {
 
     try {
       this.numbers.entries().forEach(e -> e.setValue(1234));
-      fail("can't alter empty-set!");
+      fail("can't modify entries!");
     } catch (final Exception e2) {
       // expected
     }
