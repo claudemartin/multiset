@@ -116,6 +116,10 @@ public final class Multiset<T> extends AbstractCollection<T> implements Serializ
   /**
    * Creates a new {@link Multiset} containing all given elements.
    * 
+   * <p>
+   * Each is added as many times as it is passed to this method. Use chained calls to
+   * {@link #add(Object, int)} to set multiplicities.
+   * 
    * @param elements
    *          The elements
    * @return <code>new Multiset<>(asList(elements));</code>
@@ -252,6 +256,31 @@ public final class Multiset<T> extends AbstractCollection<T> implements Serializ
   }
 
   /**
+   * Changes the multiplicity of an element. The value can be negative.
+   * 
+   * This returns a reference to the multiset for method chaining.
+   * 
+   * @param element
+   *          an element
+   * @param value
+   *          how much the multiplicity should be altered
+   * @see #setMultiplicity(T, int)
+   * @see #add(T)
+   * @see #of(Object...)
+   * @return a reference to this object.
+   */
+  public Multiset<T> add(final T element, final int value) {
+    if (value != 0) {
+      final int oldM = this.getMultiplicity(element);
+      final int newM = oldM + value;
+      if (newM < 0)
+        throw new NoSuchElementException("Element " + element + " could not be removed");
+      this._set(element, oldM, newM);
+    }
+    return this;
+  }
+
+  /**
    * Sets the multiplicity of a certain element. The element is removed if m is 0 or added if it was
    * 0. Therefore this may lead to a modification of the underlying data structure. The
    * {@link #iterator() Iterator} supports @link {@link Iterator#remove() removal} of elements
@@ -261,21 +290,32 @@ public final class Multiset<T> extends AbstractCollection<T> implements Serializ
    *          the element
    * @param m
    *          new multiplicity
+   * @see #add(Object, int)
    * @returns the old multiplicity.
    */
   public int setMultiplicity(final T element, final int m) {
     if (m < 0)
       throw new IllegalArgumentException("m < 0");
-    final int i = this.map.getOrDefault(element, 0);
+    final int i = this.getMultiplicity(element);
     if (m == i)
       return i;
-    if (m == 0)
+    this._set(element, i, m);
+    return i;
+  }
+
+  /**
+   * Internal use only!
+   */
+  void _set(final T element, final int oldMultiplicity, final int newMultiplicity) {
+    assert newMultiplicity >= 0;
+    if (oldMultiplicity == newMultiplicity)
+      return;
+    if (newMultiplicity == 0)
       this.map.remove(element);
     else
-      this.map.put(element, m);
-    this.size = this.size - i + m;
+      this.map.put(element, newMultiplicity);
+    this.size += -oldMultiplicity + newMultiplicity;
     this.checkSize();
-    return i;
   }
 
   /**
@@ -310,6 +350,7 @@ public final class Multiset<T> extends AbstractCollection<T> implements Serializ
    * @param element
    *          The element to be added.
    * @see #add(Object)
+   * @see #setMultiplicity(Object, int)
    * @return the new multiplicity.
    */
   public int insert(final T element) {
@@ -337,10 +378,8 @@ public final class Multiset<T> extends AbstractCollection<T> implements Serializ
       return false;
     else if (value.intValue() == 1)
       this.map.remove(t);
-    else {
-      assert value > 1 : "invalid value";
+    else
       this.map.put((T) t, value - 1);
-    }
     this.size--;
     this.checkSize();
     return true;
@@ -438,13 +477,15 @@ public final class Multiset<T> extends AbstractCollection<T> implements Serializ
    * @return the multiplicity.
    */
   public int getMultiplicity(final Object t) {
-    return this.map.getOrDefault(t, 0);
+    final Integer i = this.map.get(t);
+    return i == null ? 0 : i;
   }
 
   Iterator<T> iterator(final Iterator<Entry<T, Integer>> entries) {
     return new Iterator<T>() {
       int c = 0;
-      T t = null;
+      @SuppressWarnings("unchecked")
+      T t = (T) Multiset.this;
 
       @Override
       public T next() {
@@ -466,12 +507,14 @@ public final class Multiset<T> extends AbstractCollection<T> implements Serializ
 
       @Override
       public void remove() {
+        if (this.t == Multiset.this)
+          throw new IllegalStateException();
         final int multiplicity = Multiset.this.getMultiplicity(this.t);
         if (multiplicity == 1) {
           entries.remove();
           Multiset.this.size--;
         } else
-          Multiset.this.setMultiplicity(this.t, multiplicity - 1);
+          Multiset.this._set(this.t, multiplicity, multiplicity - 1);
       }
     };
   }

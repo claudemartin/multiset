@@ -108,6 +108,29 @@ public class MultisetTest {
     } catch (final Exception e) {
       // expected!
     }
+
+    {
+      final Multiset<Integer> m = new Multiset<>();
+      assertTrue(m.isEmpty());
+
+      m.add(0, 0);
+      assertTrue(m.isEmpty());
+
+      m.add(42, 40).add(42, 2);
+      assertEquals(42, m.getMultiplicity(42));
+      m.add(42, -41);
+      assertEquals(1, m.getMultiplicity(42));
+
+      m.add(8, 1).add(8, -1);
+      assertEquals(0, m.getMultiplicity(8));
+
+      try {
+        m.add(123, -4);
+        fail("can't remove nonexistant elements!");
+      } catch (final Exception e) {
+        // expected!
+      }
+    }
   }
 
   @SuppressWarnings({ "unchecked", "rawtypes" })
@@ -407,7 +430,9 @@ public class MultisetTest {
       // expected
     }
     try {
-      ums.iterator().remove();
+      final Iterator<Character> itr = ums.iterator();
+      itr.next();
+      itr.remove();
       fail("unmodifiableMultiset");
     } catch (final Exception e) {
       // expected
