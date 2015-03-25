@@ -179,6 +179,26 @@ public class MultisetTest {
     assertFalse(this.empty.remove(this.abc));
 
   }
+  
+  @Test
+	public void testPoll() throws Exception {
+		try {
+			while(true) this.abc.poll();
+		} catch (NoSuchElementException e) {
+				// expected!
+		}
+		assertEquals(this.empty, this.abc);
+		assertFalse(this.abc.poll(e -> fail("can't poll from empty multiset")));
+		
+		final Multiset<Integer> num1 = this.numbers.clone();
+		final Multiset<Integer> num2 = new Multiset<>();
+		while(this.numbers.poll(num2::insert)) ;
+		assertEquals(this.empty, this.numbers);
+		assertEquals(num1, num2);
+		
+		num2.poll(num2::add);
+		assertEquals(num1, num2);
+	}
 
   @Test
   public final void testSetMultiplicities() {

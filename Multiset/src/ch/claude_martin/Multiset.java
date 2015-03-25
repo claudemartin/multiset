@@ -384,6 +384,37 @@ public final class Multiset<T> extends AbstractCollection<T> implements Serializ
     this.checkSize();
     return true;
   }
+  
+	/** Removes and returns one single element. This is only a conveniance method. The {@link #iterator() iterator} allows you to remove
+	 * elements, which is the preferred way to poll more than one element.
+	 * 
+	 * @implNote This uses an iterator to get and remove one single element.
+	 * 
+	 * @return any element, which could be {@code null}.
+	 * @throws NoSuchElementException
+	 *           if this multiset is empty.
+	 * @see #poll(Consumer) */
+	public T poll() {
+		if (this.isEmpty()) throw new NoSuchElementException();
+		final Entry<T, Integer> next = this.map.entrySet().iterator().next();
+		final T key = next.getKey();
+		final int value = next.getValue();
+		this._set(key, value, value - 1);
+		return key;
+	}
+	
+	/**
+	 * Removes and consumes one single element. Does nothing if this multiset is empty.
+	 * The consumer will receive any element from the multiset. That element might be {@code null}.
+	 * @return {@code true}, if an element was processed.
+	 * @see #poll() 
+	 */
+	public boolean poll(Consumer<T> consumer) {
+		requireNonNull(consumer, "consumer");
+		if (this.isEmpty()) return false;
+		consumer.accept(poll());
+		return true;
+	}
 
   /**
    * Reset the multiplicity for each element in this {@link Multiset}.
@@ -683,7 +714,7 @@ public final class Multiset<T> extends AbstractCollection<T> implements Serializ
    * {@link #Multiset(Multiset)}.
    */
   @Override
-  protected Object clone() {
+  protected Multiset<T> clone() {
     return new Multiset<>(this);
   }
 
