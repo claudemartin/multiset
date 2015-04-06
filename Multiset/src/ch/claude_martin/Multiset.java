@@ -671,11 +671,8 @@ public final class Multiset<T> extends AbstractCollection<T> implements Serializ
    * @see #addAll(Collection)
    */
   public boolean addAll(final Multiset<? extends T> ms) {
-    for (final Entry<? extends T, Integer> e : ms.map.entrySet()) {
-      final Integer val = e.getValue();
-      this.map.merge(e.getKey(), val, Integer::sum);
-      this.size += val;
-    }
+    for (final Entry<? extends T, Integer> e : ms.map.entrySet())
+      this.add(e.getKey(), e.getValue());
     this.checkSize();
     return ms.size() != 0;
   }
