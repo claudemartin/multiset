@@ -12,21 +12,17 @@ import java.util.stream.Collectors;
 import java.util.stream.IntStream;
 
 import org.junit.Before;
-import org.junit.BeforeClass;
 import org.junit.Test;
+
+import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 
 public class MultisetTest {
 
-  Multiset<?> empty = Multiset.emptyMultiset();
-  Multiset<Character> abc = new Multiset<>();
-  Multiset<Integer> numbers = new Multiset<>();
+  final Multiset<?> empty = Multiset.emptyMultiset();
+  final Multiset<Character> abc = new Multiset<>();
+  final Multiset<Integer> numbers = new Multiset<>();
 
-  List<Multiset<?>> list = asList(this.empty, this.abc, this.numbers);
-
-  @BeforeClass
-  public static void setUpBeforeClass() throws Exception {
-
-  }
+  final List<Multiset<?>> list = asList(this.empty, this.abc, this.numbers);
 
   @Before
   public void setUp() throws Exception {
@@ -179,26 +175,30 @@ public class MultisetTest {
     assertFalse(this.empty.remove(this.abc));
 
   }
-  
+
   @Test
-	public void testPoll() throws Exception {
-		try {
-			while(true) this.abc.poll();
-		} catch (NoSuchElementException e) {
-				// expected!
-		}
-		assertEquals(this.empty, this.abc);
-		assertFalse(this.abc.poll(e -> fail("can't poll from empty multiset")));
-		
-		final Multiset<Integer> num1 = this.numbers.clone();
-		final Multiset<Integer> num2 = new Multiset<>();
-		while(this.numbers.poll(num2::insert)) ;
-		assertEquals(this.empty, this.numbers);
-		assertEquals(num1, num2);
-		
-		num2.poll(num2::add);
-		assertEquals(num1, num2);
-	}
+  public void testPoll() throws Exception {
+    try {
+      while (true) {
+        this.abc.poll();
+        fail("NoSuchElementException expected!");
+      }
+    } catch (final NoSuchElementException e) {
+      // expected!
+    }
+    assertEquals(this.empty, this.abc);
+    assertFalse(this.abc.poll(e -> fail("can't poll from empty multiset")));
+
+    final Multiset<Integer> num1 = this.numbers.clone();
+    final Multiset<Integer> num2 = new Multiset<>();
+    while (this.numbers.poll(num2::insert))
+      ;
+    assertEquals(this.empty, this.numbers);
+    assertEquals(num1, num2);
+
+    num2.poll(num2::add);
+    assertEquals(num1, num2);
+  }
 
   @Test
   public final void testSetMultiplicities() {
@@ -348,6 +348,7 @@ public class MultisetTest {
   }
 
   @Test
+  @SuppressFBWarnings("DMI_VACUOUS_SELF_COLLECTION_CALL")
   public final void testContainsAll() {
     for (final Multiset<?> ms : this.list)
       assertTrue(ms.containsAll(ms));
@@ -415,8 +416,8 @@ public class MultisetTest {
   public final void testMerge() {
 
     {
-      final Multiset<Serializable> merge = this.abc.merge(this.numbers, (a, b) -> a * b,
-          Serializable.class);
+      final Multiset<Serializable> merge = //
+      this.abc.merge(this.numbers, (a, b) -> a * b, Serializable.class);
       assertEquals(this.empty, merge);
     }
 
@@ -519,21 +520,24 @@ public class MultisetTest {
     try {
       map.clear();
       map.put("foo", 0);
-      Multiset.wrap(map);
+      final Multiset<String> wrap = Multiset.wrap(map);
+      fail("IAE expected!" + wrap);
     } catch (final IllegalArgumentException e) {
       // expected
     }
     try {
       map.clear();
       map.put("foo", -3);
-      Multiset.wrap(map);
+      final Multiset<String> wrap = Multiset.wrap(map);
+      fail("IAE expected! " + wrap);
     } catch (final IllegalArgumentException e) {
       // expected
     }
     try {
       map.clear();
       map.put("foo", null);
-      Multiset.wrap(map);
+      final Multiset<String> wrap = Multiset.wrap(map);
+      fail("NPE expected! " + wrap);
     } catch (final NullPointerException e) {
       // expected
     }
@@ -590,6 +594,7 @@ public class MultisetTest {
   }
 
   @Test
+  @SuppressFBWarnings("BC_IMPOSSIBLE_CAST")
   public void testCheckedMultiset() throws Exception {
     {
       final Multiset<Character> checked = Multiset.checkedMultiset(this.abc, Character.class);
@@ -599,6 +604,7 @@ public class MultisetTest {
       final Object o = "Not A Character";
       try {
         checked.add((Character) o);
+        fail("checkedMultiset");
       } catch (final ClassCastException e) {
         // expected
       }
@@ -607,13 +613,15 @@ public class MultisetTest {
       final Map<String, Integer> map = new HashMap<>();
       try {
         Multiset.checkedMultiset(map, String.class).insert((String) (Object) 42);
+        fail("checkedMultiset");
       } catch (final ClassCastException e) {
         // expected
       }
       assertTrue(map.isEmpty());
       try {
         map.put((String) (Object) 42, 123);
-        Multiset.checkedMultiset(map, String.class);
+        final Multiset<String> checked = Multiset.checkedMultiset(map, String.class);
+        fail("checkedMultiset: " + checked);
       } catch (final ClassCastException e) {
         // expected
       }
@@ -626,34 +634,38 @@ public class MultisetTest {
     }
   }
 
-  private Map<Character, Integer> syncMap;
-
   @Test
+  @SuppressFBWarnings("BC_IMPOSSIBLE_CAST")
   public void testAllWrappers() throws Exception {
     {
       final Multiset<Character> wrap = Multiset.wrap(Multiset.checkedMultiset(
           Multiset.unmodifiableMultiset(this.abc), Character.class).asMap());
       try {
         wrap.add((Character) (Object) "FOO");
+        fail("checkedMultiset");
       } catch (final ClassCastException e) {
         // expected
       }
       try {
         wrap.add('ö');
+        fail("unmodifiableMultiset");
       } catch (final UnsupportedOperationException e) {
         // expected
       }
     }
     {
-      Multiset.synchronizedMultiset(this.abc, (c, m) -> this.syncMap = m);
-      final Multiset<Character> wrap = Multiset.checkedMultiset(this.syncMap, Character.class);
-      try {
-        wrap.add((Character) (Object) "FOO");
-      } catch (final ClassCastException e) {
-        // expected
-      }
-      wrap.add('ö');
-      assertTrue(Multiset.unmodifiableMultiset(this.abc).contains('ö'));
+      Multiset.synchronizedMultiset(this.abc, (c, m) -> {
+        final Multiset<Character> wrap = Multiset.checkedMultiset(m, Character.class);
+        try {
+          wrap.add((Character) (Object) "FOO");
+          fail("checkedMultiset");
+        } catch (final ClassCastException e) {
+          // expected
+        }
+        wrap.add('ö');
+        assertTrue(Multiset.unmodifiableMultiset(this.abc).contains('ö'));
+      });
+
     }
   }
 

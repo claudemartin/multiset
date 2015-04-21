@@ -19,6 +19,7 @@ import javafx.collections.FXCollections;
 import javafx.collections.MapChangeListener;
 import javafx.collections.ObservableMap;
 
+import javax.annotation.*;
 import javax.annotation.concurrent.NotThreadSafe;
 
 /**
@@ -61,6 +62,7 @@ public final class Multiset<T> extends AbstractCollection<T> implements Serializ
    * @implNote Modification must always be performend on the {@link #map} first. This will fail if
    *           this multiset {@link #isUnmodifiable() is unmodifiable}.
    */
+  @Nonnegative
   int size = 0;
 
   public Multiset() {
@@ -125,6 +127,7 @@ public final class Multiset<T> extends AbstractCollection<T> implements Serializ
    * @return <code>new Multiset<>(asList(elements));</code>
    */
   @SafeVarargs
+  @Nonnull
   public static <T> Multiset<T> of(final T... elements) {
     requireNonNull(elements, "elements");
     return new Multiset<>(asList(elements));
@@ -140,6 +143,7 @@ public final class Multiset<T> extends AbstractCollection<T> implements Serializ
    *          The multiplicity
    * @return new {@link Multiset} greated from the given data.
    */
+  @Nonnull
   public static <T> Multiset<T> of(final Set<? extends T> set, final ToIntFunction<? super T> m) {
     requireNonNull(set, "set");
     requireNonNull(m, "m");
@@ -163,6 +167,8 @@ public final class Multiset<T> extends AbstractCollection<T> implements Serializ
    * @see #asMap()
    * @return A Multiset that is backed by the given map.
    */
+  @CheckReturnValue
+  @Nonnull
   public static <T> Multiset<T> wrap(final Map<T, Integer> map) {
     requireNonNull(map, "map");
     final int size;
@@ -188,6 +194,8 @@ public final class Multiset<T> extends AbstractCollection<T> implements Serializ
    * @return A Multiset that is backed by a newly created map.
    * @see #asMap()
    */
+  @CheckReturnValue
+  @Nonnull
   public static <T> Multiset<T> wrap(final Supplier<? extends Map<T, Integer>> ctor) {
     requireNonNull(ctor, "ctor");
     return wrap(requireNonNull(ctor.get(), "null was supplied instead of a map"));
@@ -210,6 +218,8 @@ public final class Multiset<T> extends AbstractCollection<T> implements Serializ
    *           So the multiset isn't actually backed by the collection. All changes are simply
    *           applied to it. Do not expect good performance.
    */
+  @CheckReturnValue
+  @Nonnull
   public static <T> Multiset<T> wrap(final Collection<T> coll) {
     requireNonNull(coll, "coll");
     if (coll instanceof Set)
@@ -250,7 +260,7 @@ public final class Multiset<T> extends AbstractCollection<T> implements Serializ
    * @see #insert(Object)
    */
   @Override
-  public boolean add(final T t) {
+  public boolean add(final @Nullable T t) {
     this.insert(t);
     return true;
   }
@@ -269,7 +279,7 @@ public final class Multiset<T> extends AbstractCollection<T> implements Serializ
    * @see #of(Object...)
    * @return a reference to this object.
    */
-  public Multiset<T> add(final T element, final int value) {
+  public Multiset<T> add(final @Nullable T element, final int value) {
     if (value != 0) {
       final int oldM = this.getMultiplicity(element);
       final int newM = oldM + value;
@@ -293,6 +303,7 @@ public final class Multiset<T> extends AbstractCollection<T> implements Serializ
    * @see #add(Object, int)
    * @returns the old multiplicity.
    */
+  @Nonnegative
   public int setMultiplicity(final T element, final int m) {
     if (m < 0)
       throw new IllegalArgumentException("m < 0");
@@ -332,9 +343,8 @@ public final class Multiset<T> extends AbstractCollection<T> implements Serializ
    * 
    * @see Map#replace(Object, Object, Object)
    */
-  public boolean setMultiplicity(final T element, final int oldMultiplicity,
+  public boolean setMultiplicity(final @Nullable T element, final int oldMultiplicity,
       final int newMultiplicity) {
-    requireNonNull(element, "obj");
     if (oldMultiplicity < 0 || newMultiplicity < 0)
       throw new IllegalArgumentException("negative multiplicity");
     if (this.getMultiplicity(element) == oldMultiplicity) {
@@ -353,7 +363,8 @@ public final class Multiset<T> extends AbstractCollection<T> implements Serializ
    * @see #setMultiplicity(Object, int)
    * @return the new multiplicity.
    */
-  public int insert(final T element) {
+  @Nonnegative
+  public int insert(final @Nullable T element) {
     Integer m = this.map.get(element);
     if (null == m)
       m = 1;
@@ -372,7 +383,7 @@ public final class Multiset<T> extends AbstractCollection<T> implements Serializ
    */
   @Override
   @SuppressWarnings("unchecked")
-  public boolean remove(final Object t) {
+  public boolean remove(final @Nullable Object t) {
     final Integer value = this.map.get(t);
     if (value == null)
       return false;
@@ -397,6 +408,7 @@ public final class Multiset<T> extends AbstractCollection<T> implements Serializ
    *           if this multiset is empty.
    * @see #poll(Consumer)
    */
+  @CheckForNull
   public T poll() {
     if (this.isEmpty())
       throw new NoSuchElementException();
@@ -414,6 +426,7 @@ public final class Multiset<T> extends AbstractCollection<T> implements Serializ
    * @return {@code true}, if an element was processed.
    * @see #poll()
    */
+  @CheckForNull
   public boolean poll(final Consumer<T> consumer) {
     requireNonNull(consumer, "consumer");
     if (this.isEmpty())
@@ -513,7 +526,8 @@ public final class Multiset<T> extends AbstractCollection<T> implements Serializ
    * 
    * @return the multiplicity.
    */
-  public int getMultiplicity(final Object t) {
+  @Nonnegative
+  public int getMultiplicity(final @Nullable Object t) {
     final Integer i = this.map.get(t);
     return i == null ? 0 : i;
   }
@@ -561,12 +575,14 @@ public final class Multiset<T> extends AbstractCollection<T> implements Serializ
    * {@link Iterator} supports the {@link Iterator#remove() remove} method.
    */
   @Override
+  @Nonnull
   public Iterator<T> iterator() {
     this.checkSize();
     return this.iterator(this.map.entrySet().iterator());
   }
 
   @Override
+  @Nonnull
   public Spliterator<T> spliterator() {
     return Spliterators.spliterator(this, 0);
   }
@@ -584,6 +600,7 @@ public final class Multiset<T> extends AbstractCollection<T> implements Serializ
    * the amount of discinct elements use {@link #asMap()}.{@link Map#size() size()}.
    * */
   @Override
+  @Nonnegative
   public int size() {
     this.checkSize();
     return this.size;
@@ -600,6 +617,8 @@ public final class Multiset<T> extends AbstractCollection<T> implements Serializ
    * @see #asSet()
    * @see #entries()
    */
+  @Nonnull
+  @CheckReturnValue
   public Set<T> toSet() {
     return new HashSet<>(this.map.keySet());
   }
@@ -619,6 +638,7 @@ public final class Multiset<T> extends AbstractCollection<T> implements Serializ
    *          the sequence of characters to be used at the end of the joined result
    * @return string representation of this multiset
    */
+  @Nonnull
   public String toString(final BiFunction<T, Integer, String> f, final CharSequence delimiter,
       final CharSequence prefix, final CharSequence suffix) {
     requireNonNull(f, "f");
@@ -637,6 +657,8 @@ public final class Multiset<T> extends AbstractCollection<T> implements Serializ
    * To sort by multiplicity, descending:<br>
    * <code>multiset.toList((a, b) -> b.getValue() - a.getValue())</code>
    */
+  @Nonnull
+  @CheckReturnValue
   public List<T> toList(final Comparator<Map.Entry<T, Integer>> comparator) {
     if (null == comparator)
       return this.stream().collect(Collectors.toList());
@@ -650,6 +672,8 @@ public final class Multiset<T> extends AbstractCollection<T> implements Serializ
    * can be accessed using: {@code this.asMap().entrySet()}
    */
   @SuppressWarnings("unchecked")
+  @Nonnull
+  @CheckReturnValue
   public Stream<Map.Entry<T, Integer>> entries() {
     final Stream<Entry<T, Integer>> stream = this.map.entrySet().stream();
     if (this.isUnmodifiable())
@@ -717,6 +741,8 @@ public final class Multiset<T> extends AbstractCollection<T> implements Serializ
    * {@link #Multiset(Multiset)}.
    */
   @Override
+  @CheckReturnValue
+  @Nonnull
   protected Multiset<T> clone() {
     return new Multiset<>(this);
   }
@@ -753,6 +779,8 @@ public final class Multiset<T> extends AbstractCollection<T> implements Serializ
    * . However, the type of the elements in the provided multiset does not matter.
    */
   @SuppressWarnings("unchecked")
+  @CheckReturnValue
+  @Nonnull
   public Multiset<T> intersect(final Multiset<?> set) {
     requireNonNull(set, "set");
     return this.merge((Multiset<T>) set, Math::min);
@@ -770,6 +798,8 @@ public final class Multiset<T> extends AbstractCollection<T> implements Serializ
    * @see #union(Multiset, Class)
    * @see #merge(Multiset, IntBinaryOperator)
    */
+  @CheckReturnValue
+  @Nonnull
   public Multiset<T> union(final Multiset<? extends T> set) {
     requireNonNull(set, "set");
     return this.merge(set, Integer::sum);
@@ -782,6 +812,8 @@ public final class Multiset<T> extends AbstractCollection<T> implements Serializ
    * @see #union(Multiset)
    * @see #merge(Multiset, IntBinaryOperator, Class)
    */
+  @CheckReturnValue
+  @Nonnull
   public <S> Multiset<S> union(final Multiset<? extends S> set, final Class<S> supertype) {
     requireNonNull(set, "set");
     requireNonNull(supertype, "supertype");
@@ -793,6 +825,8 @@ public final class Multiset<T> extends AbstractCollection<T> implements Serializ
    * 
    * @see #removeAll(Collection)
    */
+  @CheckReturnValue
+  @Nonnull
   public Multiset<T> minus(final Multiset<? extends T> set) {
     requireNonNull(set, "set");
     final Multiset<T> result = new Multiset<>(this);
@@ -815,6 +849,8 @@ public final class Multiset<T> extends AbstractCollection<T> implements Serializ
    * // m3 = [ a, a, a, b, b, c ]
    * </pre></code>
    */
+  @CheckReturnValue
+  @Nonnull
   public Multiset<T> merge(final Multiset<? extends T> set, final IntBinaryOperator operation) {
     requireNonNull(set, "set");
     requireNonNull(operation, "operation");
@@ -844,6 +880,8 @@ public final class Multiset<T> extends AbstractCollection<T> implements Serializ
    *          a supertype of both multisets
    */
   @SuppressWarnings("unchecked")
+  @CheckReturnValue
+  @Nonnull
   public <S> Multiset<S> merge(final Multiset<? extends S> set, final IntBinaryOperator operation,
       final Class<S> supertype) {
     requireNonNull(set, "set");
@@ -866,6 +904,8 @@ public final class Multiset<T> extends AbstractCollection<T> implements Serializ
    *          the multiset for which an unmodifiable view is to be returned.
    * @return an unmodifiable view of the specified map.
    */
+  @CheckReturnValue
+  @Nonnull
   public static <T> Multiset<T> unmodifiableMultiset(final Multiset<T> multiset) {
     requireNonNull(multiset, "multiset");
     if (multiset.isUnmodifiable())
@@ -890,12 +930,14 @@ public final class Multiset<T> extends AbstractCollection<T> implements Serializ
    * when using streams or iterators it is not allowed to set the multiplicity to 0. Instead the
    * entry needs to be {@link Iterator#remove() removed}.
    * <p>
-   * Methods such as {@link Map#put}, {@link Map#clear}, and {@link Map#contains} delegated to the
-   * backing map of the {@link Multiset}.
+   * Methods such as {@link Map#put}, {@link Map#clear}, and {@link Map#contains} are delegated to
+   * the backing map of the {@link Multiset}.
    * 
    * @see #asSet()
    * @see #entries()
    * */
+  @CheckReturnValue
+  @Nonnull
   public Map<T, Integer> asMap() {
     if (this.view != null)
       return this.view;
@@ -1051,6 +1093,8 @@ public final class Multiset<T> extends AbstractCollection<T> implements Serializ
    * @see #entries()
    * @return set-view of all elements
    */
+  @CheckReturnValue
+  @Nonnull
   public Set<T> asSet() {
     return this.asMap().keySet();
   }
@@ -1095,6 +1139,8 @@ public final class Multiset<T> extends AbstractCollection<T> implements Serializ
 
   /** Returns an empty multiset (unmodifiable). */
   @SuppressWarnings("unchecked")
+  @CheckReturnValue
+  @Nonnull
   public static <T> Multiset<T> emptyMultiset() {
     if (null == emptyMultiset)
       return (Multiset<T>) (emptyMultiset = new Multiset<T>(true));
@@ -1107,6 +1153,8 @@ public final class Multiset<T> extends AbstractCollection<T> implements Serializ
    * 
    * @see Collections#checkedCollection(Collection, Class)
    */
+  @CheckReturnValue
+  @Nonnull
   public static <T> Multiset<T> checkedMultiset(final Multiset<T> multiset, final Class<T> type) {
     requireNonNull(multiset, "multiset");
     requireNonNull(type, "type");
@@ -1120,6 +1168,8 @@ public final class Multiset<T> extends AbstractCollection<T> implements Serializ
    * 
    * @see Collections#checkedCollection(Collection, Class)
    */
+  @CheckReturnValue
+  @Nonnull
   public static <T> Multiset<T> checkedMultiset(final Map<T, Integer> map, final Class<T> type) {
     requireNonNull(map, "map");
     requireNonNull(type, "type");
@@ -1131,13 +1181,15 @@ public final class Multiset<T> extends AbstractCollection<T> implements Serializ
    * 
    * @return a {@code Collector} which collects all the input elements into a {@code Multiset}
    */
+  @CheckReturnValue
+  @Nonnull
   public static <T> Collector<T, ?, Multiset<T>> collector() {
     return collector(Multiset::new);
   }
 
   /**
    * Returns a {@code Collector} that accumulates the input elements into a new {@code Multiset}.
-   * This cen be used to define a custom implementation of the backing {@link Map} used by the
+   * This can be used to define a custom implementation of the backing {@link Map} used by the
    * multiset (e.g. a {@link TreeMap}).
    * 
    * @param supplier
@@ -1145,6 +1197,8 @@ public final class Multiset<T> extends AbstractCollection<T> implements Serializ
    *          empty.
    * @return a {@code Collector} which collects all the input elements into a {@code Multiset}
    */
+  @CheckReturnValue
+  @Nonnull
   public static <T> Collector<T, ?, Multiset<T>> collector(final Supplier<Multiset<T>> supplier) {
     requireNonNull(supplier, "supplier");
     return new Collector<T, Multiset<T>, Multiset<T>>() {
