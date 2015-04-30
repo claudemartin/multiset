@@ -179,13 +179,13 @@ public class MultisetTest {
   @Test
   public void testPoll() throws Exception {
     try {
-      while (true) {
-        this.abc.poll();
-        fail("NoSuchElementException expected!");
-      }
+      new Multiset<>().poll();
+      fail("NoSuchElementException expected!");
     } catch (final NoSuchElementException e) {
       // expected!
     }
+    while(!this.abc.isEmpty())
+    	this.abc.poll();
     assertEquals(this.empty, this.abc);
     assertFalse(this.abc.poll(e -> fail("can't poll from empty multiset")));
 
