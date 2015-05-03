@@ -48,6 +48,7 @@ import javax.annotation.concurrent.NotThreadSafe;
  *          The type of the elements
  */
 @NotThreadSafe
+@ParametersAreNonnullByDefault
 public final class Multiset<T> extends AbstractCollection<T> implements Serializable {
   private static final long serialVersionUID = -7083567870279959503L;
 
@@ -279,6 +280,7 @@ public final class Multiset<T> extends AbstractCollection<T> implements Serializ
    * @see #of(Object...)
    * @return a reference to this object.
    */
+  @Nonnull
   public Multiset<T> add(final @Nullable T element, final int value) {
     if (value != 0) {
       final int oldM = this.getMultiplicity(element);
@@ -426,7 +428,6 @@ public final class Multiset<T> extends AbstractCollection<T> implements Serializ
    * @return {@code true}, if an element was processed.
    * @see #poll()
    */
-  @CheckForNull
   public boolean poll(final Consumer<T> consumer) {
     requireNonNull(consumer, "consumer");
     if (this.isEmpty())
@@ -659,7 +660,7 @@ public final class Multiset<T> extends AbstractCollection<T> implements Serializ
    */
   @Nonnull
   @CheckReturnValue
-  public List<T> toList(final Comparator<Map.Entry<T, Integer>> comparator) {
+  public List<T> toList(@Nullable final Comparator<Map.Entry<T, Integer>> comparator) {
     if (null == comparator)
       return this.stream().collect(Collectors.toList());
     return this.entries().sorted(comparator)
@@ -668,8 +669,10 @@ public final class Multiset<T> extends AbstractCollection<T> implements Serializ
   }
 
   /**
-   * Streams each element and it's multiplicity. The returned entries are immutable. Mutable entries
+   * Streams each element and its multiplicity. The returned entries are immutable. Mutable entries
    * can be accessed using: {@code this.asMap().entrySet()}
+   * 
+   * @see #forEach(ObjIntConsumer)
    */
   @SuppressWarnings("unchecked")
   @Nonnull
@@ -695,6 +698,7 @@ public final class Multiset<T> extends AbstractCollection<T> implements Serializ
    * @see #addAll(Collection)
    */
   public boolean addAll(final Multiset<? extends T> ms) {
+    requireNonNull(ms, "ms");
     for (final Entry<? extends T, Integer> e : ms.map.entrySet())
       this.add(e.getKey(), e.getValue());
     this.checkSize();
@@ -763,13 +767,16 @@ public final class Multiset<T> extends AbstractCollection<T> implements Serializ
   /**
    * Process each element only once, with the multiplicity given as a second parameter. The element
    * can be <code>null</code>, while the multiplicity is always greater than 0.
+   * 
+   * @see #entries()
    */
   public void forEach(final ObjIntConsumer<? super T> action) {
+    requireNonNull(action, "action");
     this.map.forEach(action::accept);
   }
 
   @Override
-  public boolean contains(final Object obj) {
+  public boolean contains(@Nullable final Object obj) {
     return this.map.containsKey(obj);
   }
 
