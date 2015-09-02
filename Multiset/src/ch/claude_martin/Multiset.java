@@ -512,6 +512,8 @@ public final class Multiset<T> extends AbstractCollection<T> implements Serializ
   }
 
   /**
+   * Retains only the elements in this multiset that are contained in the specified multiset (optional operation).
+   * 
    * @see #retainAll(Collection)
    */
   public boolean retainAll(final Multiset<?> set) {
