@@ -625,7 +625,7 @@ public final class Multiset<T> extends AbstractCollection<T> implements Serializ
   }
 
   /**
-   * Conventiance mehtod to create a string representation of this multiset.
+   * Conventiance method to create a string representation of this multiset.
    * <p>
    * Example: {@code ms.toString((t, i) -> t + " x " + i, ", ", "[ ", " ]")}
    * 
@@ -640,7 +640,7 @@ public final class Multiset<T> extends AbstractCollection<T> implements Serializ
    * @return string representation of this multiset
    */
   @Nonnull
-  public String toString(final BiFunction<T, Integer, String> f, final CharSequence delimiter,
+  public String toString(final BiFunction<? super T, ? super Integer, String> f, final CharSequence delimiter,
       final CharSequence prefix, final CharSequence suffix) {
     requireNonNull(f, "f");
     requireNonNull(delimiter, "delimiter");
