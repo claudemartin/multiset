@@ -11,6 +11,8 @@ import java.util.function.Supplier;
 import java.util.stream.Collectors;
 import java.util.stream.IntStream;
 
+import javax.naming.OperationNotSupportedException;
+
 import org.junit.Before;
 import org.junit.Test;
 
@@ -324,11 +326,29 @@ public class MultisetTest {
       assertEquals(2, this.abc.getMultiplicity(c));
   }
 
+  @SuppressWarnings({ "unchecked", "rawtypes" })
   @Test
   public final void testAddAll() {
-    this.numbers.addAll(this.numbers);
+    this.numbers.addAll(this.numbers.clone());
     for (final Integer i : this.numbers.asSet())
       assertEquals(2 * i, this.numbers.getMultiplicity(i));
+
+    int size = this.numbers.size();
+    this.numbers.addAll(asList(1, 2, 3, 4));
+    assertEquals(size + 4, this.numbers.size());
+
+    size = this.abc.size();
+    this.abc.addAll(Multiset.of('a', 'b', 'A', 'B', '!', '?', '1', '2'));
+    assertEquals(size + 8, this.abc.size());
+    
+    // This does nothing:
+    empty.addAll((Collection) empty); 
+    
+    try {
+      empty.addAll((Collection) abc); 
+    } catch (UnsupportedOperationException e) {
+      // expected
+    }
   }
 
   @Test

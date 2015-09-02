@@ -693,7 +693,11 @@ public final class Multiset<T> extends AbstractCollection<T> implements Serializ
   }
 
   /**
-   * Adds all of the elements in the specified multiset to this multiset.
+   * Adds all of the elements in the specified multiset to this multiset. The
+   * behavior of this operation is undefined if the specified collection is
+   * modified while the operation is in progress. (This implies that the
+   * behavior of this call is undefined if the specified collection is this
+   * collection, and this collection is nonempty.)
    * 
    * @see #addAll(Collection)
    */
