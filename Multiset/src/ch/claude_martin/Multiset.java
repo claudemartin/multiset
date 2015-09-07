@@ -755,12 +755,37 @@ public final class Multiset<T> extends AbstractCollection<T>implements Serializa
     return new Multiset<>(this);
   }
 
+  /**
+   * {@inheritDoc}
+   * 
+   * @see #isSubmultisetOf(Multiset)
+   */
   @Override
   public boolean containsAll(final Collection<?> c) {
     requireNonNull(c, "c");
     if (c instanceof Multiset)
       this.map.keySet().containsAll(((Multiset<?>) c).map.keySet());
     return this.map.keySet().containsAll(c);
+  }
+
+  /**
+   * Returns <tt>true</tt> if this is a submultiset of the given Multiset.
+   * 
+   * A submultiset has no element with a higher multiplicity than the supermultiset. Every Multiset
+   * is a submultiset of itself.
+   * 
+   * @return <tt>true</tt>, if this is a submultiset of the given Multiset.
+   * @see #containsAll(Collection)
+   */
+  public boolean isSubmultisetOf(final Multiset<?> ms) {
+    requireNonNull(ms, "ms");
+    if (this.size > ms.size)
+      return false;
+    if (this == ms || this.isEmpty())
+      return true;
+    final Optional<?> any = this.map.entrySet().stream()
+        .filter(e -> e.getValue() > ms.getMultiplicity(e.getKey())).findAny();
+    return !any.isPresent();
   }
 
   @Override
