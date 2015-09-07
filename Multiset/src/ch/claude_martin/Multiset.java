@@ -15,12 +15,12 @@ import java.util.stream.Collectors;
 import java.util.stream.IntStream;
 import java.util.stream.Stream;
 
+import javax.annotation.*;
+import javax.annotation.concurrent.NotThreadSafe;
+
 import javafx.collections.FXCollections;
 import javafx.collections.MapChangeListener;
 import javafx.collections.ObservableMap;
-
-import javax.annotation.*;
-import javax.annotation.concurrent.NotThreadSafe;
 
 /**
  * {@link HashMap} based implementation of a Multiset. It doesn't maintain sorting or insertion
@@ -49,11 +49,11 @@ import javax.annotation.concurrent.NotThreadSafe;
  */
 @NotThreadSafe
 @ParametersAreNonnullByDefault
-public final class Multiset<T> extends AbstractCollection<T> implements Serializable {
+public final class Multiset<T> extends AbstractCollection<T>implements Serializable {
   private static final long serialVersionUID = -7083567870279959503L;
 
   /** The backing map. */
-  final Map<T, Integer> map;
+  final Map<T, Integer>             map;
   /** View as map. Lazy. This is the same as {@link #map} if and only if this is unmodifiable. */
   private transient Map<T, Integer> view = null;
 
@@ -316,9 +316,7 @@ public final class Multiset<T> extends AbstractCollection<T> implements Serializ
     return i;
   }
 
-  /**
-   * Internal use only!
-   */
+  /** Internal use only! */
   final void _set(final T element, final int oldMultiplicity, final int newMultiplicity) {
     assert newMultiplicity >= 0;
     if (oldMultiplicity == newMultiplicity)
@@ -512,7 +510,8 @@ public final class Multiset<T> extends AbstractCollection<T> implements Serializ
   }
 
   /**
-   * Retains only the elements in this multiset that are contained in the specified multiset (optional operation).
+   * Retains only the elements in this multiset that are contained in the specified multiset
+   * (optional operation).
    * 
    * @see #retainAll(Collection)
    */
@@ -601,7 +600,7 @@ public final class Multiset<T> extends AbstractCollection<T> implements Serializ
    * <p>
    * This returns the total number of elements, including repeated memberships (cardinality). To get
    * the amount of discinct elements use {@link #asMap()}.{@link Map#size() size()}.
-   * */
+   */
   @Override
   @Nonnegative
   public int size() {
@@ -642,8 +641,8 @@ public final class Multiset<T> extends AbstractCollection<T> implements Serializ
    * @return string representation of this multiset
    */
   @Nonnull
-  public String toString(final BiFunction<? super T, ? super Integer, String> f, final CharSequence delimiter,
-      final CharSequence prefix, final CharSequence suffix) {
+  public String toString(final BiFunction<? super T, ? super Integer, String> f,
+      final CharSequence delimiter, final CharSequence prefix, final CharSequence suffix) {
     requireNonNull(f, "f");
     requireNonNull(delimiter, "delimiter");
     requireNonNull(prefix, "prefix");
@@ -695,11 +694,10 @@ public final class Multiset<T> extends AbstractCollection<T> implements Serializ
   }
 
   /**
-   * Adds all of the elements in the specified multiset to this multiset. The
-   * behavior of this operation is undefined if the specified collection is
-   * modified while the operation is in progress. (This implies that the
-   * behavior of this call is undefined if the specified collection is this
-   * collection, and this collection is nonempty.)
+   * Adds all of the elements in the specified multiset to this multiset. The behavior of this
+   * operation is undefined if the specified collection is modified while the operation is in
+   * progress. (This implies that the behavior of this call is undefined if the specified collection
+   * is this collection, and this collection is nonempty.)
    * 
    * @see #addAll(Collection)
    */
@@ -800,7 +798,7 @@ public final class Multiset<T> extends AbstractCollection<T> implements Serializ
   }
 
   /**
-   * The union of two multisets. This is equal to
+   * The disjoint union of two multisets. This is equal to
    * <code>this.{@link #merge(Multiset, IntBinaryOperator) merge}(set, {@link Integer#sum(int, int) Integer::sum})</code>
    * 
    * <p>
@@ -948,7 +946,7 @@ public final class Multiset<T> extends AbstractCollection<T> implements Serializ
    * 
    * @see #asSet()
    * @see #entries()
-   * */
+   */
   @CheckReturnValue
   @Nonnull
   public Map<T, Integer> asMap() {

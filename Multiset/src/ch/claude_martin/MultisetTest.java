@@ -11,8 +11,6 @@ import java.util.function.Supplier;
 import java.util.stream.Collectors;
 import java.util.stream.IntStream;
 
-import javax.naming.OperationNotSupportedException;
-
 import org.junit.Before;
 import org.junit.Test;
 
@@ -20,9 +18,9 @@ import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 
 public class MultisetTest {
 
-  final Multiset<?> empty = Multiset.emptyMultiset();
-  final Multiset<Character> abc = new Multiset<>();
-  final Multiset<Integer> numbers = new Multiset<>();
+  final Multiset<?>         empty   = Multiset.emptyMultiset();
+  final Multiset<Character> abc     = new Multiset<>();
+  final Multiset<Integer>   numbers = new Multiset<>();
 
   final List<Multiset<?>> list = asList(this.empty, this.abc, this.numbers);
 
@@ -186,8 +184,8 @@ public class MultisetTest {
     } catch (final NoSuchElementException e) {
       // expected!
     }
-    while(!this.abc.isEmpty())
-    	this.abc.poll();
+    while (!this.abc.isEmpty())
+      this.abc.poll();
     assertEquals(this.empty, this.abc);
     assertFalse(this.abc.poll(e -> fail("can't poll from empty multiset")));
 
@@ -340,13 +338,13 @@ public class MultisetTest {
     size = this.abc.size();
     this.abc.addAll(Multiset.of('a', 'b', 'A', 'B', '!', '?', '1', '2'));
     assertEquals(size + 8, this.abc.size());
-    
+
     // This does nothing:
-    empty.addAll((Collection) empty); 
-    
+    this.empty.addAll((Collection) this.empty);
+
     try {
-      empty.addAll((Collection) abc); 
-    } catch (UnsupportedOperationException e) {
+      this.empty.addAll((Collection) this.abc);
+    } catch (final UnsupportedOperationException e) {
       // expected
     }
   }
@@ -427,8 +425,8 @@ public class MultisetTest {
   public final void testMinus() {
     for (final Multiset ms : this.list)
       assertEquals(this.empty, ms.minus(ms));
-    final Multiset<Integer> minus = Multiset.of(1, 2, 2, 3, 3, 3, 4, 5, 5, 6, 6, 6).minus(
-        Multiset.of(1, 1, 1, 2, 2, 3));
+    final Multiset<Integer> minus = Multiset.of(1, 2, 2, 3, 3, 3, 4, 5, 5, 6, 6, 6)
+        .minus(Multiset.of(1, 1, 1, 2, 2, 3));
     assertEquals(Multiset.of(4, 5, 5, 6, 6, 6), minus);
   }
 
@@ -658,8 +656,8 @@ public class MultisetTest {
   @SuppressFBWarnings("BC_IMPOSSIBLE_CAST")
   public void testAllWrappers() throws Exception {
     {
-      final Multiset<Character> wrap = Multiset.wrap(Multiset.checkedMultiset(
-          Multiset.unmodifiableMultiset(this.abc), Character.class).asMap());
+      final Multiset<Character> wrap = Multiset.wrap(Multiset
+          .checkedMultiset(Multiset.unmodifiableMultiset(this.abc), Character.class).asMap());
       try {
         wrap.add((Character) (Object) "FOO");
         fail("checkedMultiset");
@@ -702,8 +700,8 @@ public class MultisetTest {
         assertEquals(ms, collected);
       }
       {
-        final Multiset<?> collected = ms.parallelStream().collect(
-            Multiset.collector(() -> Multiset.wrap(TreeMap::new)));
+        final Multiset<?> collected = ms.parallelStream()
+            .collect(Multiset.collector(() -> Multiset.wrap(TreeMap::new)));
         assertEquals(ms, collected);
       }
     }
