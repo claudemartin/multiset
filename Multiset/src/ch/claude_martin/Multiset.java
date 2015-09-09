@@ -23,7 +23,7 @@ import javafx.collections.MapChangeListener;
 import javafx.collections.ObservableMap;
 
 /**
- * {@link HashMap} based implementation of a Multiset. It doesn't maintain sorting or insertion
+ * {@link Map} based implementation of a Multiset. It doesn't maintain sorting or insertion
  * order. But it's not a regular set, because you can add an element more than once. If an element
  * is already present that equals the element to be inserted then it's multiplicity (count) is
  * incremented by one. <code>null</code> is allowed as an element.
