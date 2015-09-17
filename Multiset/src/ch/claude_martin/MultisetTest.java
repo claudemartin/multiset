@@ -3,6 +3,10 @@ package ch.claude_martin;
 import static java.util.Arrays.asList;
 import static org.junit.Assert.*;
 
+import java.io.ByteArrayInputStream;
+import java.io.ByteArrayOutputStream;
+import java.io.ObjectInputStream;
+import java.io.ObjectOutputStream;
 import java.io.Serializable;
 import java.util.*;
 import java.util.concurrent.ConcurrentHashMap;
@@ -20,9 +24,9 @@ public class MultisetTest {
 
   final Multiset<?>         empty   = Multiset.emptyMultiset();
   final Multiset<Character> abc     = new Multiset<>();
-  final Multiset<Integer>   numbers = new Multiset<>();
+  final Multiset<Integer>   numbers = Multiset.wrap(TreeMap::new);
 
-  final List<Multiset<?>> list = asList(this.empty, this.abc, this.numbers);
+  final List<Multiset<?>>   list    = asList(this.empty, this.abc, this.numbers);
 
   @Before
   public void setUp() throws Exception {
@@ -425,8 +429,8 @@ public class MultisetTest {
   public final void testMinus() {
     for (final Multiset ms : this.list)
       assertEquals(this.empty, ms.minus(ms));
-    final Multiset<Integer> minus = Multiset.of(1, 2, 2, 3, 3, 3, 4, 5, 5, 6, 6, 6)
-        .minus(Multiset.of(1, 1, 1, 2, 2, 3));
+    final Multiset<Integer> minus = Multiset.of(1, 2, 2, 3, 3, 3, 4, 5, 5, 6, 6, 6).minus(
+        Multiset.of(1, 1, 1, 2, 2, 3));
     assertEquals(Multiset.of(4, 5, 5, 6, 6, 6), minus);
   }
 
@@ -434,9 +438,10 @@ public class MultisetTest {
   public final void testMerge() {
 
     {
+      final Multiset<Character> xyz = Multiset.of('x', 'y', 'z');
       final Multiset<Serializable> merge = //
-      this.abc.merge(this.numbers, (a, b) -> a * b, Serializable.class);
-      assertEquals(this.empty, merge);
+      this.abc.merge(xyz, (a, b) -> a * b, Serializable.class);
+      assertEquals(xyz, merge);
     }
 
     {
@@ -656,8 +661,8 @@ public class MultisetTest {
   @SuppressFBWarnings("BC_IMPOSSIBLE_CAST")
   public void testAllWrappers() throws Exception {
     {
-      final Multiset<Character> wrap = Multiset.wrap(Multiset
-          .checkedMultiset(Multiset.unmodifiableMultiset(this.abc), Character.class).asMap());
+      final Multiset<Character> wrap = Multiset.wrap(Multiset.checkedMultiset(
+          Multiset.unmodifiableMultiset(this.abc), Character.class).asMap());
       try {
         wrap.add((Character) (Object) "FOO");
         fail("checkedMultiset");
@@ -700,8 +705,8 @@ public class MultisetTest {
         assertEquals(ms, collected);
       }
       {
-        final Multiset<?> collected = ms.parallelStream()
-            .collect(Multiset.collector(() -> Multiset.wrap(TreeMap::new)));
+        final Multiset<?> collected = ms.parallelStream().collect(
+            Multiset.collector(() -> Multiset.wrap(TreeMap::new)));
         assertEquals(ms, collected);
       }
     }
@@ -712,5 +717,21 @@ public class MultisetTest {
       final Multiset<Integer> collected = bag.parallelStream().collect(Multiset.collector());
       assertEquals(bag, collected);
     }
+  }
+
+  @Test
+  public void testSerialize() throws Exception {
+    for (final Multiset<?> ms : this.list)
+      try (final ByteArrayOutputStream out = new ByteArrayOutputStream()) {
+        try (final ObjectOutputStream out2 = new ObjectOutputStream(out)) {
+          out2.writeObject(ms);
+        }
+        try (final ByteArrayInputStream in = new ByteArrayInputStream(out.toByteArray())) {
+          try (final ObjectInputStream in2 = new ObjectInputStream(in)) {
+            final Multiset<?> clone = (Multiset<?>) in2.readObject();
+            assertEquals(ms, clone);
+          }
+        }
+      }
   }
 }

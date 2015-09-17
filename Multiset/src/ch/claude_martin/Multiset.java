@@ -15,17 +15,22 @@ import java.util.stream.Collectors;
 import java.util.stream.IntStream;
 import java.util.stream.Stream;
 
-import javax.annotation.*;
-import javax.annotation.concurrent.NotThreadSafe;
-
 import javafx.collections.FXCollections;
 import javafx.collections.MapChangeListener;
 import javafx.collections.ObservableMap;
 
+import javax.annotation.CheckForNull;
+import javax.annotation.CheckReturnValue;
+import javax.annotation.Nonnegative;
+import javax.annotation.Nonnull;
+import javax.annotation.Nullable;
+import javax.annotation.ParametersAreNonnullByDefault;
+import javax.annotation.concurrent.NotThreadSafe;
+
 /**
- * {@link Map} based implementation of a Multiset. It doesn't maintain sorting or insertion
- * order. But it's not a regular set, because you can add an element more than once. If an element
- * is already present that equals the element to be inserted then it's multiplicity (count) is
+ * {@link Map} based implementation of a Multiset. It doesn't maintain sorting or insertion order.
+ * But it's not a regular set, because you can add an element more than once. If an element is
+ * already present that equals the element to be inserted then it's multiplicity (count) is
  * incremented by one. <code>null</code> is allowed as an element.
  * 
  * <p>
@@ -37,6 +42,12 @@ import javafx.collections.ObservableMap;
  * <p>
  * This can also be used like a <i>TreeList</i> (<code>Multiset.wrap(TreeMap::new)</code>) or even
  * to wrap any collection that behaves like a multiset (<code>Multiset.wrap(myList)</code>).
+ * 
+ * <p>
+ * Any implementation for {@link Map} can be used. But since some do now allow <tt>null</tt> as a
+ * key or throw {@link ClassCastException} on an inappropriate key type, those exceptions will be
+ * ignored and it is assumed that the element is not in the Multiset.<br/>
+ * Example: <code>Multiset.of(1,2,3).contains("hello!");</code> // returns false
  * <p>
  * <a href="https://humanoidreadable.wordpress.com/2015/02/20/multiset-in-java/">blog entry</a>
  * <p>
@@ -49,13 +60,13 @@ import javafx.collections.ObservableMap;
  */
 @NotThreadSafe
 @ParametersAreNonnullByDefault
-public final class Multiset<T> extends AbstractCollection<T>implements Serializable {
-  private static final long serialVersionUID = -7083567870279959503L;
+public final class Multiset<T> extends AbstractCollection<T> implements Serializable {
+  private static final long         serialVersionUID = -7083567870279959503L;
 
   /** The backing map. */
   final Map<T, Integer>             map;
   /** View as map. Lazy. This is the same as {@link #map} if and only if this is unmodifiable. */
-  private transient Map<T, Integer> view = null;
+  private transient Map<T, Integer> view             = null;
 
   /**
    * Total size of this multiset.
@@ -64,7 +75,7 @@ public final class Multiset<T> extends AbstractCollection<T>implements Serializa
    *           this multiset {@link #isUnmodifiable() is unmodifiable}.
    */
   @Nonnegative
-  int size = 0;
+  int                               size             = 0;
 
   public Multiset() {
     this.map = new HashMap<>();
@@ -380,11 +391,25 @@ public final class Multiset<T> extends AbstractCollection<T>implements Serializa
    * Removes a single instance of the specified element from this multiset. This decrements the
    * multiplicity by one. Does nothing if it wasn't in the set. To remove all equal objects you must
    * call <code>{@link #setMultiplicity(Object, int) setMultiplicity(t, 0)}</code>.
+   * 
+   * <p>
+   * If the backing {@link Map} throws a {@link ClassCastException} because the key is of
+   * inappropriate type or {@link NullPointerException} because it doesn't allow null, this will
+   * return 0 and ignore the exception.
    */
   @Override
   @SuppressWarnings("unchecked")
   public boolean remove(final @Nullable Object t) {
-    final Integer value = this.map.get(t);
+    final Integer value;
+    try {
+      value = this.map.get(t);
+    } catch (final ClassCastException e) {
+      return false;
+    } catch (final NullPointerException e) {
+      if (t == null)
+        return false;
+      throw e;
+    }
     if (value == null)
       return false;
     else if (value.intValue() == 1)
@@ -491,7 +516,7 @@ public final class Multiset<T> extends AbstractCollection<T>implements Serializa
     final Iterator<Entry<T, Integer>> itr = this.map.entrySet().iterator();
     while (itr.hasNext()) {
       final Entry<T, Integer> next = itr.next();
-      if (set.map.containsKey(next.getKey())) {
+      if (set.contains(next.getKey())) {
         itr.remove();
         this.size -= next.getValue();
         result = true;
@@ -526,19 +551,32 @@ public final class Multiset<T> extends AbstractCollection<T>implements Serializa
    * Get the multiplicity or the given object. If the object is not in this multiset then the
    * multiplicity is 0.
    * 
+   * <p>
+   * If the backing {@link Map} throws a {@link ClassCastException} because the key is of
+   * inappropriate type or {@link NullPointerException} because it doesn't allow null, this will
+   * return 0 and ignore the exception.
+   * 
    * @return the multiplicity.
    */
   @Nonnegative
   public int getMultiplicity(final @Nullable Object t) {
-    final Integer i = this.map.get(t);
-    return i == null ? 0 : i;
+    try {
+      final Integer i = this.map.get(t);
+      return i == null ? 0 : i;
+    } catch (final ClassCastException e) {
+      return 0;
+    } catch (final NullPointerException e) {
+      if (t == null)
+        return 0;
+      throw e;
+    }
   }
 
   Iterator<T> iterator(final Iterator<Entry<T, Integer>> entries) {
     return new Iterator<T>() {
       int c = 0;
       @SuppressWarnings("unchecked")
-      T t = (T) Multiset.this;
+      T   t = (T) Multiset.this;
 
       @Override
       public T next() {
@@ -804,9 +842,25 @@ public final class Multiset<T> extends AbstractCollection<T>implements Serializa
     this.map.forEach(action::accept);
   }
 
+  /**
+   * {@inheritDoc}
+   * 
+   * <p>
+   * If the backing {@link Map} throws a {@link ClassCastException} because the key is of
+   * inappropriate type or {@link NullPointerException} because it doesn't allow null, this will
+   * return false and ignore the exception.
+   */
   @Override
   public boolean contains(@Nullable final Object obj) {
-    return this.map.containsKey(obj);
+    try {
+      return this.map.containsKey(obj);
+    } catch (final ClassCastException e) {
+      return false;
+    } catch (final NullPointerException e) {
+      if (obj == null)
+        return false;
+      throw e;
+    }
   }
 
   /**
@@ -1007,8 +1061,8 @@ public final class Multiset<T> extends AbstractCollection<T>implements Serializa
               public java.util.Map.Entry<T, Integer> next() {
                 return this.last = new Entry<T, Integer>() {
                   final Entry<T, Integer> next = itr.next();
-                  final T t = this.next.getKey();
-                  int v = this.next.getValue();
+                  final T                 t    = this.next.getKey();
+                  int                     v    = this.next.getValue();
 
                   @Override
                   public T getKey() {
