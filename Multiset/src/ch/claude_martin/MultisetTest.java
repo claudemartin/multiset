@@ -720,6 +720,24 @@ public class MultisetTest {
   }
 
   @Test
+  public void testIsSubmultisetOf() throws Exception {
+    for (final Multiset<?> ms : this.list) {
+      assertTrue(this.empty.isSubmultisetOf(ms));
+      assertTrue(ms.isSubmultisetOf(ms));
+      if (!ms.isEmpty())
+        for (final Object o : ms)
+          assertTrue(Multiset.of(o).isSubmultisetOf(ms));
+      assertFalse(Multiset.of(new Object()).isSubmultisetOf(ms));
+
+      final Multiset<Object> ms2 = ms.union(ms, Object.class);
+      assertEquals(ms2.size(), ms.size() * 2);
+      assertTrue(ms.isSubmultisetOf(ms2));
+      assertTrue(ms2.isSubmultisetOf(ms2));
+      assertTrue(ms.isEmpty() == ms2.isSubmultisetOf(ms));
+    }
+  }
+
+  @Test
   public void testSerialize() throws Exception {
     for (final Multiset<?> ms : this.list)
       try (final ByteArrayOutputStream out = new ByteArrayOutputStream()) {

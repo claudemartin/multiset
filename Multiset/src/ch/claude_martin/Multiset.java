@@ -819,7 +819,7 @@ public final class Multiset<T> extends AbstractCollection<T> implements Serializ
     requireNonNull(ms, "ms");
     if (this.size > ms.size)
       return false;
-    if (this == ms || this.isEmpty())
+    if (this == ms || ms.isEmpty())
       return true;
     final Optional<?> any = this.map.entrySet().stream()
         .filter(e -> e.getValue() > ms.getMultiplicity(e.getKey())).findAny();
