@@ -3,11 +3,7 @@ package ch.claude_martin;
 import static java.util.Arrays.asList;
 import static org.junit.Assert.*;
 
-import java.io.ByteArrayInputStream;
-import java.io.ByteArrayOutputStream;
-import java.io.ObjectInputStream;
-import java.io.ObjectOutputStream;
-import java.io.Serializable;
+import java.io.*;
 import java.util.*;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.atomic.AtomicReference;
@@ -26,7 +22,7 @@ public class MultisetTest {
   final Multiset<Character> abc     = new Multiset<>();
   final Multiset<Integer>   numbers = Multiset.wrap(TreeMap::new);
 
-  final List<Multiset<?>>   list    = asList(this.empty, this.abc, this.numbers);
+  final List<Multiset<?>> list = asList(this.empty, this.abc, this.numbers);
 
   @Before
   public void setUp() throws Exception {
@@ -273,11 +269,8 @@ public class MultisetTest {
     assertFalse(this.empty.iterator().hasNext());
     assertTrue(this.abc.iterator().hasNext());
 
-    for (final Iterator<Character> itr = this.abc.iterator(); itr.hasNext();) {
-      final Character character = itr.next();
+    for (final Character character : this.abc)
       assertTrue(this.abc.contains(character));
-    }
-
   }
 
   @Test
@@ -385,6 +378,10 @@ public class MultisetTest {
     final List<Character> l = new ArrayList<>();
     this.abc.forEach(l::add);
     assertEquals(l.size(), this.abc.size());
+
+    final List<Integer> l2 = new ArrayList<>();
+    this.numbers.forEach((e, m) -> l2.add(e));
+    assertEquals(l2.size(), this.numbers.asSet().size());
   }
 
   @Test
@@ -429,8 +426,8 @@ public class MultisetTest {
   public final void testMinus() {
     for (final Multiset ms : this.list)
       assertEquals(this.empty, ms.minus(ms));
-    final Multiset<Integer> minus = Multiset.of(1, 2, 2, 3, 3, 3, 4, 5, 5, 6, 6, 6).minus(
-        Multiset.of(1, 1, 1, 2, 2, 3));
+    final Multiset<Integer> minus = Multiset.of(1, 2, 2, 3, 3, 3, 4, 5, 5, 6, 6, 6)
+        .minus(Multiset.of(1, 1, 1, 2, 2, 3));
     assertEquals(Multiset.of(4, 5, 5, 6, 6, 6), minus);
   }
 
@@ -661,8 +658,8 @@ public class MultisetTest {
   @SuppressFBWarnings("BC_IMPOSSIBLE_CAST")
   public void testAllWrappers() throws Exception {
     {
-      final Multiset<Character> wrap = Multiset.wrap(Multiset.checkedMultiset(
-          Multiset.unmodifiableMultiset(this.abc), Character.class).asMap());
+      final Multiset<Character> wrap = Multiset.wrap(Multiset
+          .checkedMultiset(Multiset.unmodifiableMultiset(this.abc), Character.class).asMap());
       try {
         wrap.add((Character) (Object) "FOO");
         fail("checkedMultiset");
@@ -705,8 +702,8 @@ public class MultisetTest {
         assertEquals(ms, collected);
       }
       {
-        final Multiset<?> collected = ms.parallelStream().collect(
-            Multiset.collector(() -> Multiset.wrap(TreeMap::new)));
+        final Multiset<?> collected = ms.parallelStream()
+            .collect(Multiset.collector(() -> Multiset.wrap(TreeMap::new)));
         assertEquals(ms, collected);
       }
     }
