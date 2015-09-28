@@ -718,6 +718,9 @@ public class MultisetTest {
 
   @Test
   public void testIsSubmultisetOf() throws Exception {
+    assertFalse(Multiset.of(new Object()).isSubmultisetOf(this.empty));
+    assertTrue(this.empty.isSubmultisetOf(this.empty));
+
     for (final Multiset<?> ms : this.list) {
       assertTrue(this.empty.isSubmultisetOf(ms));
       assertTrue(ms.isSubmultisetOf(ms));
