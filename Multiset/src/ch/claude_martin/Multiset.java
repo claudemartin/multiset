@@ -1029,8 +1029,9 @@ public final class Multiset<T> extends AbstractCollection<T> implements Serializ
   @CheckReturnValue
   @Nonnull
   public Map<T, Integer> asMap() {
-    if (this.view != null)
-      return this.view;
+    final Map<T, Integer> v = this.view;
+    if (v != null)
+      return v;
     return this.view = new AbstractMap<T, Integer>() {
       private Set<java.util.Map.Entry<T, Integer>> entrySet;
 
