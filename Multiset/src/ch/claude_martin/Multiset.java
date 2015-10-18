@@ -1062,37 +1062,37 @@ public final class Multiset<T> extends AbstractCollection<T> implements Serializ
               public java.util.Map.Entry<T, Integer> next() {
                 return this.last = new Entry<T, Integer>() {
                   final Entry<T, Integer> next = itr.next();
-                  final T                 t    = this.next.getKey();
-                  int                     v    = this.next.getValue();
+                  final T                 key    = this.next.getKey();
+                  int                     value    = this.next.getValue();
 
                   @Override
                   public T getKey() {
-                    return this.t;
+                    return this.key;
                   }
 
                   @Override
                   public Integer getValue() {
-                    return this.v;
+                    return this.value;
                   }
 
                   @Override
                   public Integer setValue(final Integer value) {
                     requireNonNull(value, "value");
-                    final int val = value.intValue();
-                    if (val < 0)
-                      throw new IllegalArgumentException("value=" + val);
-                    if (val == 0)
+                    final int i = value.intValue();
+                    if (i < 0)
+                      throw new IllegalArgumentException("value=" + i);
+                    if (i == 0)
                       throw new IllegalArgumentException(
                           "Can't set multiplicity to 0. Use remove() instead!");
-                    final int old = this.v;
-                    Multiset.this.setMultiplicity(this.t, val);
-                    this.v = val;
+                    final int old = this.value;
+                    Multiset.this.setMultiplicity(this.key, i);
+                    this.value = i;
                     return old;
                   }
 
                   @Override
                   public final int hashCode() {
-                    return Objects.hashCode(this.t) ^ this.v;
+                    return Objects.hashCode(this.key) ^ this.value;
                   }
 
                   @Override
@@ -1101,8 +1101,8 @@ public final class Multiset<T> extends AbstractCollection<T> implements Serializ
                       return true;
                     if (o instanceof Map.Entry) {
                       final Map.Entry<?, ?> e = (Map.Entry<?, ?>) o;
-                      if (Objects.equals(this.t, e.getKey())
-                          && Objects.equals(this.v, e.getValue()))
+                      if (Objects.equals(this.key, e.getKey())
+                          && Objects.equals(this.value, e.getValue()))
                         return true;
                     }
                     return false;
@@ -1110,7 +1110,7 @@ public final class Multiset<T> extends AbstractCollection<T> implements Serializ
 
                   @Override
                   public String toString() {
-                    return this.t + "=" + this.v;
+                    return this.key + "=" + this.value;
                   }
                 };
               }
