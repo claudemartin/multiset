@@ -15,17 +15,12 @@ import java.util.stream.Collectors;
 import java.util.stream.IntStream;
 import java.util.stream.Stream;
 
+import javax.annotation.*;
+import javax.annotation.concurrent.NotThreadSafe;
+
 import javafx.collections.FXCollections;
 import javafx.collections.MapChangeListener;
 import javafx.collections.ObservableMap;
-
-import javax.annotation.CheckForNull;
-import javax.annotation.CheckReturnValue;
-import javax.annotation.Nonnegative;
-import javax.annotation.Nonnull;
-import javax.annotation.Nullable;
-import javax.annotation.ParametersAreNonnullByDefault;
-import javax.annotation.concurrent.NotThreadSafe;
 
 /**
  * {@link Map} based implementation of a Multiset. It doesn't maintain sorting or insertion order.
@@ -1139,7 +1134,7 @@ public final class Multiset<T> extends AbstractCollection<T> implements Serializ
 
           @Override
           public boolean contains(final Object o) {
-            return Multiset.this.map.keySet().contains(o);
+            return Multiset.this.map.entrySet().contains(o);
           }
 
           @Override
@@ -1150,7 +1145,17 @@ public final class Multiset<T> extends AbstractCollection<T> implements Serializ
 
           @Override
           public boolean remove(final Object o) {
-            return Multiset.this.map.entrySet().remove(o);
+            if (o instanceof Map.Entry) {
+              @SuppressWarnings("unchecked")
+              final Entry<T, Integer> entry = (Entry<T, Integer>) o;
+              final T key = entry.getKey();
+              final Integer value = entry.getValue();
+              if (value <= 0 || Multiset.this.getMultiplicity(key) != value)
+                return false;
+              Multiset.this._set(key, value, 0);
+              return true;
+            }
+            return false;
           }
 
           @Override
@@ -1160,7 +1165,7 @@ public final class Multiset<T> extends AbstractCollection<T> implements Serializ
 
           @Override
           public void clear() {
-            Multiset.this.map.clear();
+            Multiset.this.clear();
           }
 
         };

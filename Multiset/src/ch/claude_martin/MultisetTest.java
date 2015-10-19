@@ -5,6 +5,7 @@ import static org.junit.Assert.*;
 
 import java.io.*;
 import java.util.*;
+import java.util.Map.Entry;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.atomic.AtomicReference;
 import java.util.function.Supplier;
@@ -174,6 +175,12 @@ public class MultisetTest {
 
     assertFalse(this.empty.remove(this.abc));
 
+    assertFalse(this.empty.remove(null));
+    assertFalse(this.empty.remove(new Object()));
+
+    assertFalse(this.numbers.remove(null));
+    assertFalse(this.numbers.remove(new Object()));
+
   }
 
   @Test
@@ -262,6 +269,9 @@ public class MultisetTest {
 
     for (final int n : this.numbers.asSet())
       assertEquals(n, this.numbers.getMultiplicity(n));
+
+    assertEquals(0, this.numbers.getMultiplicity(null));
+    assertEquals(0, this.numbers.getMultiplicity(new Object()));
   }
 
   @Test
@@ -271,6 +281,21 @@ public class MultisetTest {
 
     for (final Character character : this.abc)
       assertTrue(this.abc.contains(character));
+
+    try {
+      this.empty.iterator().next();
+      fail("empty set has no 'next' element");
+    } catch (final NoSuchElementException e) {
+      // expected!
+    }
+
+    try {
+      this.numbers.iterator().remove();
+      fail("can't remove element if next() was never invoked");
+    } catch (final IllegalStateException e) {
+      // expected!
+    }
+
   }
 
   @Test
@@ -295,6 +320,7 @@ public class MultisetTest {
   @Test
   public final void testToList() {
     assertEquals(new ArrayList<>(this.abc), this.abc.toList((a, b) -> a.getKey() - b.getKey()));
+    assertEquals(new ArrayList<>(this.abc), this.abc.toList(null));
   }
 
   @Test
@@ -308,6 +334,13 @@ public class MultisetTest {
 
     try {
       this.numbers.entries().forEach(e -> e.setValue(1234));
+      fail("can't modify entries!");
+    } catch (final Exception e2) {
+      // expected
+    }
+
+    try {
+      Multiset.unmodifiableMultiset(this.numbers).entries().forEach(e -> e.setValue(1234));
       fail("can't modify entries!");
     } catch (final Exception e2) {
       // expected
@@ -346,14 +379,20 @@ public class MultisetTest {
     }
   }
 
+  @SuppressWarnings({ "rawtypes", "unchecked" })
   @Test
   public final void testEquals() {
-    for (final Multiset<?> ms : this.list)
+    for (final Multiset ms : this.list) {
       assertTrue(ms.equals(ms));
+      assertFalse(ms.equals(new Object()));
+      assertEquals(ms.isEmpty(), ms.equals(ms.union(ms)));
+    }
+    assertTrue(Multiset.wrap(this.list).equals(Multiset.wrap(this.list)));
     assertTrue(this.empty.equals(Multiset.of()));
     assertFalse(this.abc.equals(this.numbers));
     assertFalse(this.numbers.equals(this.abc));
     assertFalse(this.numbers.equals(this.empty));
+    assertFalse(Multiset.of(1, 2, 3).equals(Multiset.of(1, 2, 4)));
   }
 
   @Test
@@ -388,6 +427,8 @@ public class MultisetTest {
   public final void testContains() {
     assertTrue(this.abc.contains('a'));
     assertFalse(this.abc.contains('ä'));
+    assertFalse(this.numbers.contains(null));
+    assertFalse(this.numbers.contains(new Object()));
   }
 
   @Test
@@ -575,13 +616,68 @@ public class MultisetTest {
     assertTrue(Multiset.unmodifiableMultiset(this.abc).isUnmodifiable());
   }
 
+  @SuppressWarnings({ "rawtypes", "unchecked" })
   @Test
   public final void testAsMap() {
-    for (final Multiset<?> ms : this.list) {
+    {
+      final Multiset<Character> actual = this.abc.clone();
+      for (final Entry<Character, Integer> entry : actual.asMap().entrySet())
+        entry.setValue(entry.getValue() + 1);
+
+      final Multiset<Character> expected = this.abc.clone();
+      expected.setMultiplicities((x, m) -> m + 1);
+      assertEquals(expected, actual);
+    }
+
+    this.list.stream().map(ms -> ms.clone()).forEach(ms -> {
       final Map<?, Integer> map = ms.asMap();
       assertEquals(map, ms.map);
-      // TODO -> what to test?
-    }
+
+      map.entrySet().forEach(entry -> {
+        try {
+          entry.setValue(-1);
+          fail("negative multiplicity");
+        } catch (final Exception e) {
+          // expected
+        }
+        try {
+          entry.setValue(0);
+          fail("multiplicity=0 => remove");
+        } catch (final Exception e) {
+          // expected
+        }
+        assertEquals(Objects.hashCode(entry.getKey()) ^ entry.getValue(), entry.hashCode());
+        assertEquals(entry.getKey() + "=" + entry.getValue(), entry.toString());
+        assertTrue(entry.equals(entry));
+        try {
+          assertTrue(entry.equals(ms.entries().filter(e -> e.equals(entry)).findAny()
+              .orElseThrow(NoSuchElementException::new)));
+        } catch (final Exception e) {
+          fail("Can't compare entries: " + e);
+        }
+        assertFalse(entry.equals(new Object()));
+      });
+      if (!ms.isEmpty()) {
+        final int size = ms.size();
+        @SuppressWarnings("cast")
+        final Set<Entry<?, Integer>> entrySet = (Set<Entry<?, Integer>>) (Set) map.entrySet();
+        final Entry<?, Integer> someEntry = entrySet.iterator().next();
+        assertTrue(entrySet.containsAll(ms.map.entrySet()));
+        assertTrue(entrySet.contains(someEntry));
+        assertTrue(entrySet.remove(someEntry));
+        assertFalse(entrySet.remove(someEntry));
+        assertFalse(entrySet.contains(someEntry));
+        assertEquals(size - someEntry.getValue(), ms.size());
+        entrySet.clear();
+        assertTrue(ms.isEmpty());
+        try {
+          entrySet.add(someEntry);
+          fail("Can't add to entry set");
+        } catch (final Exception e) {
+          // expected
+        }
+      }
+    });
   }
 
   @Test
