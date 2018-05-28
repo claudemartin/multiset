@@ -39,7 +39,7 @@ import javafx.collections.ObservableMap;
  * to wrap any collection that behaves like a multiset (<code>Multiset.wrap(myList)</code>).
  * 
  * <p>
- * Any implementation for {@link Map} can be used. But since some do now allow <tt>null</tt> as a
+ * Any implementation for {@link Map} can be used. But since some do not allow <tt>null</tt> as a
  * key or throw {@link ClassCastException} on an inappropriate key type, those exceptions will be
  * ignored and it is assumed that the element is not in the Multiset.<br/>
  * Example: <code>Multiset.of(1,2,3).contains("hello!");</code> // returns false
