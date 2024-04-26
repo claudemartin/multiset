@@ -1,31 +1,29 @@
 package ch.claude_martin;
 
 import static java.util.Arrays.asList;
-import static org.junit.Assert.*;
+import static org.junit.jupiter.api.Assertions.*;
 
 import java.io.*;
+import java.lang.constant.Constable;
 import java.util.*;
 import java.util.Map.Entry;
 import java.util.concurrent.ConcurrentHashMap;
-import java.util.concurrent.atomic.AtomicReference;
 import java.util.function.Supplier;
 import java.util.stream.Collectors;
 import java.util.stream.IntStream;
 
-import org.junit.Before;
-import org.junit.Test;
-
-import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
 
 public class MultisetTest {
 
   final Multiset<?>         empty   = Multiset.emptyMultiset();
   final Multiset<Character> abc     = new Multiset<>();
-  final Multiset<Integer>   numbers = Multiset.wrap(TreeMap::new);
+  final Multiset<Integer>   numbers = Multiset.ofSupplier(TreeMap::new);
 
-  final List<Multiset<?>> list = asList(this.empty, this.abc, this.numbers);
+  final List<Multiset<?>>   list    = asList(this.empty, this.abc, this.numbers);
 
-  @Before
+  @BeforeEach
   public void setUp() throws Exception {
     this.abc.clear();
     for (char c = 'a'; c <= 'z'; c++)
@@ -221,6 +219,7 @@ public class MultisetTest {
   }
 
   @Test
+  @SuppressWarnings("unlikely-arg-type")
   public final void testRemoveAllCollection() {
     assertFalse(this.abc.removeAll(this.numbers.asSet()));
 
@@ -387,7 +386,8 @@ public class MultisetTest {
       assertFalse(ms.equals(new Object()));
       assertEquals(ms.isEmpty(), ms.equals(ms.union(ms)));
     }
-    assertTrue(Multiset.wrap(this.list).equals(Multiset.wrap(this.list)));
+    assertTrue(
+        Multiset.ofMap(Map.of("x", 1, "y", 5)).equals(Multiset.ofMap(Map.of("x", 1, "y", 5))));
     assertTrue(this.empty.equals(Multiset.of()));
     assertFalse(this.abc.equals(this.numbers));
     assertFalse(this.numbers.equals(this.abc));
@@ -402,7 +402,7 @@ public class MultisetTest {
   }
 
   @Test
-  @SuppressFBWarnings("DMI_VACUOUS_SELF_COLLECTION_CALL")
+  @SuppressWarnings("unlikely-arg-type")
   public final void testContainsAll() {
     for (final Multiset<?> ms : this.list)
       assertTrue(ms.containsAll(ms));
@@ -415,7 +415,7 @@ public class MultisetTest {
   @Test
   public final void testForEach() {
     final List<Character> l = new ArrayList<>();
-    this.abc.forEach(l::add);
+    this.abc.forEach(e -> l.add(e));
     assertEquals(l.size(), this.abc.size());
 
     final List<Integer> l2 = new ArrayList<>();
@@ -434,10 +434,15 @@ public class MultisetTest {
   @Test
   public final void testIntersect() {
     assertEquals(this.empty, this.abc.intersect(this.numbers));
+    assertEquals(this.empty, this.abc.intersect(this.numbers, Serializable.class));
     assertEquals(this.abc, this.abc.intersect(this.abc));
+    assertEquals(this.abc, this.abc.intersect(this.abc, Constable.class));
 
     assertEquals(Multiset.of(1, 2, 2, 3),
         Multiset.of(1, 1, 2, 2, 3, 3).intersect(Multiset.of(1, 2, 2, 3)));
+
+    assertEquals(Multiset.of(1, 2, 2, 3),
+        Multiset.of(1, 1, 2, 2, 3, 3).intersect(Multiset.of(1, 2, 2, 3), Integer.class));
 
   }
 
@@ -478,7 +483,7 @@ public class MultisetTest {
     {
       final Multiset<Character> xyz = Multiset.of('x', 'y', 'z');
       final Multiset<Serializable> merge = //
-      this.abc.merge(xyz, (a, b) -> a * b, Serializable.class);
+          this.abc.merge(xyz, (a, b) -> a * b, Serializable.class);
       assertEquals(xyz, merge);
     }
 
@@ -524,81 +529,61 @@ public class MultisetTest {
   }
 
   @Test
-  public void testWrap() throws Exception {
+  public void testOfCollection() throws Exception {
     for (final Multiset<?> multiset : this.list) {
-      final Multiset<?> wrap = Multiset.wrap(multiset.asMap());
+      final Multiset<?> wrap = Multiset.ofMap(multiset.asMap());
       assertEquals(multiset, wrap);
     }
     {
-      final Multiset<Character> wrap = Multiset.wrap(this.abc.asMap());
+      final Multiset<Character> multiset = Multiset.ofMap(this.abc.asMap());
       for (int i = 0; i < 10; i++) {
-        wrap.insert('ä');
-        wrap.remove((char) ('a' + i));
-        assertEquals(this.abc, wrap);
+        multiset.insert('ä');
+        multiset.remove((char) ('a' + i));
+        assertEquals(this.abc, multiset);
       }
     }
     {
-      final Multiset<Character> wrap = Multiset.wrap(() -> this.abc.asMap());
-      assertEquals(this.abc, wrap);
+      final Multiset<Character> multiset = Multiset.ofSupplier(() -> this.abc.asMap());
+      assertEquals(this.abc, multiset);
     }
     for (final Supplier<Map<Character, Integer>> ctor : Arrays
         .<Supplier<Map<Character, Integer>>> asList(HashMap::new, TreeMap::new,
             ConcurrentHashMap::new)) {
-      final Multiset<Character> wrap = Multiset.wrap(ctor);
+      final Multiset<Character> wrap = Multiset.ofSupplier(ctor);
       assertEquals(this.empty, wrap);
       wrap.addAll(this.abc);
       assertEquals(this.abc, wrap);
     }
     {
-      final Multiset<Foo> wrap = Multiset.wrap(() -> new EnumMap<>(Foo.class));
-      assertEquals(this.empty, wrap);
-      wrap.add(Foo.BLA);
-      wrap.add(Foo.BLUBB);
-      assertEquals(Multiset.of(Foo.BLA, Foo.BLUBB), wrap);
-    }
-
-    {
-      final Collection<Integer> coll = new LinkedList<>(this.numbers);
-      final Multiset<Integer> multiset = Multiset.wrap(coll);
-      assertEquals(new Multiset<>(coll), multiset);
-      for (int i = -3; i < 5; i++)
-        multiset.insert(i);
-      assertEquals(new Multiset<>(coll), multiset);
-      for (int i = 1; i < 7; i++)
-        multiset.remove(i);
-      assertEquals(new Multiset<>(coll), multiset);
-      multiset.setMultiplicity(8, 0);
-      assertEquals(new Multiset<>(coll), multiset);
-      multiset.setMultiplicities((i, m) -> Math.abs(i + m));
-      assertEquals(new Multiset<>(coll), multiset);
-      multiset.asMap().merge(8, 2, Integer::sum);
-      assertEquals(new Multiset<>(coll), multiset);
-      multiset.asSet().remove(9);
-      assertEquals(new Multiset<>(coll), multiset);
+      final Multiset<Foo> multiset = Multiset.ofSupplier(() -> new EnumMap<>(Foo.class));
+      assertEquals(this.empty, multiset);
+      multiset.add(Foo.BLA);
+      multiset.add(Foo.BLUBB);
+      assertEquals(Multiset.of(Foo.BLA, Foo.BLUBB), multiset);
     }
 
     final Map<String, Integer> map = new HashMap<>();
     try {
       map.clear();
       map.put("foo", 0);
-      final Multiset<String> wrap = Multiset.wrap(map);
-      fail("IAE expected!" + wrap);
+      final Multiset<String> multiset = Multiset.ofMap(map);
+      fail("IAE expected!" + multiset);
     } catch (final IllegalArgumentException e) {
       // expected
     }
     try {
       map.clear();
       map.put("foo", -3);
-      final Multiset<String> wrap = Multiset.wrap(map);
-      fail("IAE expected! " + wrap);
+      final Multiset<String> multiset = Multiset.ofMap(map);
+      fail("IAE expected! " + multiset);
     } catch (final IllegalArgumentException e) {
       // expected
     }
     try {
       map.clear();
       map.put("foo", null);
-      final Multiset<String> wrap = Multiset.wrap(map);
-      fail("NPE expected! " + wrap);
+      final Multiset<String> multiset = Multiset.ofMap(map);
+      fail("NPE expected! " + multiset);
     } catch (final NullPointerException e) {
       // expected
     }
@@ -696,21 +681,6 @@ public class MultisetTest {
   }
 
   @Test
-  public final void testSynchronizedMultiset() {
-    final AtomicReference<Collection<Integer>> coll = new AtomicReference<>();
-    final AtomicReference<Map<Integer, Integer>> map = new AtomicReference<>();
-
-    Multiset.synchronizedMultiset(this.numbers, (c, m) -> {
-      coll.set(c);
-      map.set(m);
-    });
-
-    map.get().put(42, 123);
-    assertEquals(123, coll.get().stream().filter(i -> i == 42).count());
-  }
-
-  @Test
-  @SuppressFBWarnings("BC_IMPOSSIBLE_CAST")
   public void testCheckedMultiset() throws Exception {
     {
       final Multiset<Character> checked = Multiset.checkedMultiset(this.abc, Character.class);
@@ -746,15 +716,14 @@ public class MultisetTest {
       map.put(null, 5);
       Multiset.checkedMultiset(map, String.class).insert("bla");
       assertEquals(3, map.size());
-      assertEquals(5 + 5 + 1, Multiset.wrap(map).size());
+      assertEquals(5 + 5 + 1, Multiset.ofMap(map).size());
     }
   }
 
   @Test
-  @SuppressFBWarnings("BC_IMPOSSIBLE_CAST")
   public void testAllWrappers() throws Exception {
     {
-      final Multiset<Character> wrap = Multiset.wrap(Multiset
+      final Multiset<Character> wrap = Multiset.ofMap(Multiset
           .checkedMultiset(Multiset.unmodifiableMultiset(this.abc), Character.class).asMap());
       try {
         wrap.add((Character) (Object) "FOO");
@@ -768,20 +737,6 @@ public class MultisetTest {
       } catch (final UnsupportedOperationException e) {
         // expected
       }
-    }
-    {
-      Multiset.synchronizedMultiset(this.abc, (c, m) -> {
-        final Multiset<Character> wrap = Multiset.checkedMultiset(m, Character.class);
-        try {
-          wrap.add((Character) (Object) "FOO");
-          fail("checkedMultiset");
-        } catch (final ClassCastException e) {
-          // expected
-        }
-        wrap.add('ö');
-        assertTrue(Multiset.unmodifiableMultiset(this.abc).contains('ö'));
-      });
-
     }
   }
 
@@ -799,7 +754,7 @@ public class MultisetTest {
       }
       {
         final Multiset<?> collected = ms.parallelStream()
-            .collect(Multiset.collector(() -> Multiset.wrap(TreeMap::new)));
+            .collect(Multiset.collector(() -> Multiset.ofSupplier(TreeMap::new)));
         assertEquals(ms, collected);
       }
     }
